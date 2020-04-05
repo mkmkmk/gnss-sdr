@@ -65,13 +65,13 @@ rtk_t configure_rtklib_options()
     // custom options
     //configuration->set_property("rtklib_solver.positioning_mode", "Single");
     //configuration->set_property("rtklib_solver.elevation_mask", "0");
-    //configuration->set_property("rtklib_solver.iono_model", "OFF");
-    //configuration->set_property("rtklib_solver.trop_model", "OFF");
+    configuration->set_property("rtklib_solver.iono_model", "OFF");
+    configuration->set_property("rtklib_solver.trop_model", "OFF");
 
     configuration->set_property("rtklib_solver.positioning_mode", "PPP_Static");
     configuration->set_property("rtklib_solver.elevation_mask", "6");
-    configuration->set_property("rtklib_solver.iono_model", "Broadcast");
-    configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
+    //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
+    //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
 
     //RTKLIB PVT solver options
 
@@ -459,6 +459,7 @@ int main() //int argc, char** argv)
         std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
     }
 
+#if 0
     std::string iono_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_iono.xml";
     if(supl_client.load_iono_xml(iono_xml_filename) == true)
     {
@@ -470,43 +471,28 @@ int main() //int argc, char** argv)
     {
         std::cout << "ERROR: SUPL client error reading IONO XML" << std::endl;
     }
+#endif
 
-
-
-    if (0)
+#if 0
+    std::string utc_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_utc_model.xml";
+    if (supl_client.load_utc_xml(utc_xml_filename) == true)
     {
-        // insert observables epoch
-        std::map<int, Gnss_Synchro> gnss_synchro_map;
-        //    Gnss_Synchro tmp_obs;
-        //    tmp_obs.System = 'G';
-        //    std::string signal = "1C";
-        //    const char* str = signal.c_str();                         // get a C style null terminated string
-        //    std::memcpy(static_cast<void*>(tmp_obs.Signal), str, 3);  // copy string into synchro char array: 2 char + null
-        //
-        //    gnss_synchro_map[0] = tmp_obs;
-        //    gnss_synchro_map[0].PRN = 1;
+        d_ls_pvt->gps_utc_model = supl_client.gps_utc;
+        std::cout << "SUPL: Read XML UTC loaded" << std::endl;
 
-        //load from xml (boost serialize)
-        std::string file_name = path + "data/rtklib_test/obs_test1.xml";
-
-        std::ifstream ifs;
-        try
-        {
-            ifs.open(file_name.c_str(), std::ifstream::binary | std::ifstream::in);
-            boost::archive::xml_iarchive xml(ifs);
-            gnss_synchro_map.clear();
-            xml >> boost::serialization::make_nvp("GNSS-SDR_gnss_synchro_map", gnss_synchro_map);
-            std::cout << "Loaded gnss_synchro map data with " << gnss_synchro_map.size() << " pseudoranges" << std::endl;
-        } catch (std::exception &e)
-        {
-            std::cout << e.what() << "File: " << file_name;
-        }
-        ifs.close();
     }
+    else
+    {
+        std::cout << "ERROR: SUPL client error reading UTC XML" << std::endl;
+    }
+#endif
+
 
     std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
 
     int dump_n_channels = 5 + 1; // 1 extra
+
+    int decym = 10;
 
     Observables_Dump_Reader observables (dump_n_channels);  // 1 extra
 
@@ -523,6 +509,11 @@ int main() //int argc, char** argv)
     int64_t epoch_counter = 0;
 
     //int chan = 0;
+
+    arma::vec sq_sum_ecef = { 0.0, 0.0, 0.0};
+    arma::vec sum_meas_pos_ecef = { 0.0, 0.0, 0.0};
+    int sum_num = 0;
+
 
     observables.restart();
     while (observables.read_binary_obs())
@@ -569,8 +560,15 @@ int main() //int argc, char** argv)
         if (!allValid)
             continue;
 
+        epoch_counter++;
+
+        if (epoch_counter % decym)
+            continue;
+
+
         if (d_ls_pvt->get_PVT(gnss_synchro_map, false))
             {
+
                 // DEBUG MESSAGE: Display position in console output
                 if (d_ls_pvt->is_valid_position())
                     {
@@ -605,42 +603,54 @@ int main() //int argc, char** argv)
                                  << d_ls_pvt->get_vdop()
                                  << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
 
-                        //todo: check here the positioning error against the reference position generated with gnss-sim
-                        //reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
-                        //arma::vec LLH = {30.286502, 120.032669, 100};  //ref position for this scenario
-                        //arma::vec LLH = {52.21904497408158, 21.01267815632622, 168.05925633106381};
-                        arma::vec LLH = {52.21904661779532, 21.01268096018381, 168.24609463661909};
+                        #if (1)
+                            //todo: check here the positioning error against the reference position generated with gnss-sim
+                            //reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
+                            //arma::vec LLH = {30.286502, 120.032669, 100};  //ref position for this scenario
+                            //arma::vec LLH = {52.21904497408158, 21.01267815632622, 168.05925633106381};
+                            //arma::vec LLH = {52.21904661779532, 21.01268096018381, 168.24609463661909};
+                            //arma::vec LLH = { 52.21898588275369, 21.01258906723609, 191.01122819073498 }; // 2014-12-20T00:01:00.000Z
+                            arma::vec LLH = { 52.21898588275369 + 0.0000129838958500, 21.01258906723609 - 0.0000129838958500, 191.01122819073498 - 0.3817213643342257 };
+                            if(0)
+                            {
+                                std::cout << "Lat, Long, H error: " << d_ls_pvt->get_latitude() - LLH(0)
+                                          << "," << d_ls_pvt->get_longitude() - LLH(1)
+                                          << "," << d_ls_pvt->get_height() - LLH(2) << " [deg,deg,meters]" << std::endl;
+                            }
+                            arma::vec v_eb_n = {0.0, 0.0, 0.0};
+                            arma::vec true_r_eb_e;
+                            arma::vec true_v_eb_e;
+                            pv_Geo_to_ECEF(degtorad(LLH(0)), degtorad(LLH(1)), LLH(2), v_eb_n, true_r_eb_e, true_v_eb_e);
+                        #else
+                            //arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
+                            arma::vec true_r_eb_e = { 3655449.287, 1404116.477, 5017919.645};
+                            arma::vec LLH =  LLH_to_deg(cart2geo(true_r_eb_e, 4));
+                        #endif
 
                         double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
-                        std::cout << "Lat, Long, H error: " << d_ls_pvt->get_latitude() - LLH(0)
-                                  << "," << d_ls_pvt->get_longitude() - LLH(1)
-                                  << "," << d_ls_pvt->get_height() - LLH(2) << " [deg,deg,meters]" << std::endl;
-
                         std::cout << "Haversine Great Circle error LLH distance: " << error_LLH_m << " [meters]" << std::endl;
-
-                        arma::vec v_eb_n = {0.0, 0.0, 0.0};
-                        arma::vec true_r_eb_e;
-                        arma::vec true_v_eb_e;
-                        pv_Geo_to_ECEF(degtorad(LLH(0)), degtorad(LLH(1)), LLH(2), v_eb_n, true_r_eb_e, true_v_eb_e);
 
                         arma::vec measured_r_eb_e = {d_ls_pvt->pvt_sol.rr[0], d_ls_pvt->pvt_sol.rr[1], d_ls_pvt->pvt_sol.rr[2]};
 
                         arma::vec error_r_eb_e = measured_r_eb_e - true_r_eb_e;
 
-                        std::cout << "ECEF position error vector: " << error_r_eb_e << " [meters]" << std::endl;
+                        // std::cout << "ECEF position error vector: " << error_r_eb_e << " [meters]" << std::endl;
 
                         double error_3d_m = arma::norm(error_r_eb_e, 2);
 
                         std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
 
                         //check results against the test tolerance
-                        if (error_3d_m >= 0.2)
+                        if (error_3d_m >= 1.0)
                         {
                             std::cout << "3D positioning error BIG!" << std::endl;
                         }
                         else
                         {
                             std::cout << "3D positioning error OK!" << std::endl;
+                            sq_sum_ecef = sq_sum_ecef + arma::pow(error_r_eb_e, 2);
+                            sum_meas_pos_ecef = sum_meas_pos_ecef + measured_r_eb_e;
+                            sum_num++;
                         }
 
                         //pvt_valid = true;
@@ -654,7 +664,16 @@ int main() //int argc, char** argv)
             }
 
 
-        epoch_counter++;
+
+    }
+
+    std::cout << "-----------------" << std::endl;
+
+    if(sum_num)
+    {
+        std::cout << "3D RMS[m] = " << sqrt(arma::sum(sq_sum_ecef / sum_num)) << std::endl;
+        arma::vec mean_pos = sum_meas_pos_ecef / sum_num;
+        std::cout << "mean meas ECEF position: { " << mean_pos(0) << ", " << mean_pos(1) << ", " << mean_pos(2) << "} " << std::endl;
     }
 
     std::cout << "epoch_counter=" << epoch_counter << std::endl;
