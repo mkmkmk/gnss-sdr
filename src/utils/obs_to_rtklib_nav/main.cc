@@ -424,6 +424,206 @@ rtk_t configure_rtklib_options()
 
 int main() //int argc, char** argv)
 {
+    //std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
+    //std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
+    //int dump_n_channels = 5;
+
+    // TODO file sel
+
+#if 0 && !USE_PPP
+
+    // zapis z FPGA 16MHz bez pomiarów fazowych
+    // Single 3D SD[m] = 16.93
+    const int error_bound = 200;
+    //arma::vec true_r_eb_e = { 3655465.449, 1404114.512, 5017927.510};
+    arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
+
+    // dla błędów < 20
+    // Single 3D SD[m] = 4.33
+    //arma::vec true_r_eb_e = { 3655465.449, 1404112.665, 5017926.698};
+
+    int dump_n_channels = 5;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2019-09-07/2/ticksExSavIQ.bin_obs.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+
+#endif
+
+#if 0
+    // Single, iono+tropo OFF, mean - ref [m] = 7.04, 3D SD[m] = 18.36 ???
+    // arma::vec true_r_eb_e = { 3655479.590, 1404123.428, 5017946.443};
+    // 3D SD[m] = 92m
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-07/1/OnlineScanNav-gnss-sim-observables-ok.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-07/1/gps_ephemeris.xml";
+#endif
+
+#if 0
+    // PPP_Static, elev 0, iono off, sd-3d[m] = 0.0005-NIEPRAWDA
+    // ref = { 3655482.807, 1404118.578, 5017917.000};
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-07/2-OnlineScanNav/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-07/2-OnlineScanNav/gps_ephemeris.xml";
+#endif
+
+#if 0
+
+    // sym fs 16MHz
+    // PPP 3D SD[m] == 30m
+    const int error_bound = 200;
+    arma::vec true_r_eb_e = { 3655411.386, 1404120.930, 5017902.834};
+
+    // Single 3D SD[m] == 67m
+    //const int error_bound = 200;
+    // arma::vec true_r_eb_e = { 3655470.883, 1404131.776, 5017938.950};
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-1/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-1/gps_ephemeris.xml";
+#endif
+
+#if 0
+    const int error_bound = 200;
+    arma::vec true_r_eb_e;
+
+    //4MHz PPP 3D SD[m] = 43.7
+    if (USE_PPP)
+       true_r_eb_e = arma::vec({ 3655404.400, 1404118.848, 5017895.377});
+
+    //4MHz Single 3D SD[m] = 96
+    if (!USE_PPP)
+       true_r_eb_e = arma::vec({ 3655475.490, 1404137.966, 5017938.882});
+
+    // current comp
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-2/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-2/gps_ephemeris.xml";
+#endif
+
+#if 0
+    //16MHz, PPP, 3D SD[m] = 47.00
+    const int error_bound = 200;
+    arma::vec true_r_eb_e = { 3655432.602, 1404129.254, 5017900.940};
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-3/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-3/gps_ephemeris.xml";
+#endif
+
+#if 0
+    //16MHz, PPP, 3D SD[m] = 49.00
+    const int error_bound = 200;
+    arma::vec true_r_eb_e = { 3655432.872, 1404130.188, 5017901.024};
+    //16MHz, PPP, 3D SD[m] = 27.61
+    //const int error_bound = 40;
+    //arma::vec true_r_eb_e = { 3655439.9541424359194934, 1404114.2663816625718027, 5017912.8526892913505435};
+
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-4/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-4/gps_ephemeris.xml";
+#endif
+
+#if 0
+    arma::vec true_r_eb_e;
+    const int error_bound = 200;
+
+    if(USE_PPP)
+    {
+        // 4M 3D SD[m] = 43.91
+        true_r_eb_e = arma::vec({ 3655403.844, 1404118.503, 5017895.504});
+    }
+    else
+    {
+        // 4M 3D SD[m] = 95.65
+        true_r_eb_e = arma::vec({ 3655475.8417131230235100, 1404138.1389957570936531, 5017940.8985855309292674});
+    }
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-1/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-1/gps_ephemeris.xml";
+#endif
+
+
+#if 0
+    // current comp
+    arma::vec true_r_eb_e;
+
+    //const int error_bound = 200;
+    const int error_bound = 10;
+
+    if(USE_PPP)
+    {
+        // error_bound = 200;
+        // true_r_eb_e = arma::vec(
+        //    { 3655415.6656871624290943, 1404120.1573056990746409, 5017908.0126902842894197});
+
+        // error_bound = 10
+        // 3D RMS[m] = 4.85
+        true_r_eb_e = arma::vec(
+            {3655426.2032937305048108,1404129.3436893990729004,5017912.1325014652684331});
+
+    }
+    else
+    {
+        true_r_eb_e = arma::vec({ 3655402.8336528479121625, 1404117.1551710774656385, 5017895.3089261008426547});
+    }
+
+    int dump_n_channels = 8;
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/observables.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/gps_ephemeris.xml";
+#endif
+
+
+#if 1
+    // current comp
+    arma::vec true_r_eb_e;
+
+    const int error_bound = 200;
+    //const int error_bound = 10;
+
+    if(USE_PPP)
+    {
+        // error_bound = 200, dziwna długo stosowana refer.
+        true_r_eb_e = arma::vec(
+            { 3655424.6915760519914329, 1404127.5425126673653722, 5017908.3038758812472224});
+
+        // gps-sdr-sim ref pos
+        true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
+
+        // error_bound = 10
+        //true_r_eb_e = arma::vec(
+        //        { 3655416.7486569550819695, 1404123.0403552409261465, 5017908.1269250828772783});
+        //true_r_eb_e = arma::vec(
+        //    {3655426.2032937305048108,1404129.3436893990729004,5017912.1325014652684331});
+
+    }
+    else
+    {
+        true_r_eb_e = arma::vec({ 3655474.9567744643427432, 1404137.4245814934838563, 5017939.5866936203092337});
+    }
+
+    int dump_n_channels = 8;
+    //std::string true_obs_file = "/home/mk/Gnss/NaviSocRepo/tests/OnlineScanNav/observables.dat";
+    std::string true_obs_file = "/home/mk/Gnss/SimpRel/observables.q32.dat";
+    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+#endif
+
+
+
+
+
+    // load ephemeris
+    //std::string eph_xml_filename = path + "data/rtklib_test/eph_GPS_L1CA_test1_poprawiony.xml";
+
+    // eph pochodzą z uruchomienia gnss-sdr na pliku z gns-sdr-sim
+    //std::string eph_xml_filename = "data/rtklib_test/eeph_gpssim_pw.xml";
+
+    //std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris.xml";
+
+    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+
+
 
 	std::cout << "Hello World!" << std::endl;
 
@@ -441,13 +641,6 @@ int main() //int argc, char** argv)
 					save_to_mat, rtk));
 	d_ls_pvt->set_averaging_depth(1);
 
-	// load ephemeris
-	//std::string eph_xml_filename = path + "data/rtklib_test/eph_GPS_L1CA_test1_poprawiony.xml";
-
-	// eph pochodzą z uruchomienia gnss-sdr na pliku z gns-sdr-sim
-	//std::string eph_xml_filename = "data/rtklib_test/eeph_gpssim_pw.xml";
-
-	std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris.xml";
 
     Gnss_Sdr_Supl_Client supl_client;
 
@@ -497,10 +690,6 @@ int main() //int argc, char** argv)
 #endif
 
 
-    //std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
-    std::string true_obs_file = "/home/mk/Gnss/Results/2019-09-07/2/ticksExSavIQ.bin_obs.dat";
-
-    int dump_n_channels = 5;
 
     int decym = 1;
 
@@ -521,8 +710,8 @@ int main() //int argc, char** argv)
     int sum_num = 0;
     int big_err_num = 0;
 
+    // TODO sel refer.
 #if (0)
-    //todo: check here the positioning error against the reference position generated with gnss-sim
     //reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
     //arma::vec LLH = {30.286502, 120.032669, 100};  //ref position for this scenario
     //arma::vec LLH = {52.21904497408158, 21.01267815632622, 168.05925633106381};
@@ -535,10 +724,30 @@ int main() //int argc, char** argv)
     arma::vec true_v_eb_e;
     pv_Geo_to_ECEF(degtorad(LLH(0)), degtorad(LLH(1)), LLH(2), v_eb_n, true_r_eb_e, true_v_eb_e);
 #else
-    arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
+    // gps-sdr-sim ref pos
+    //arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
+
     //arma::vec true_r_eb_e = { 3655449.287, 1404116.477, 5017919.645};
     //arma::vec true_r_eb_e = { 3655449.316, 1404116.447, 5017919.394};
+
     //arma::vec true_r_eb_e = { 3655448.789, 1404116.414, 5017919.164};
+
+    // gps-sdr-sim + gnss-sdr, elev_mask=0, no decym
+    //arma::vec true_r_eb_e = { 3655430.929, 1404117.744, 5017912.359} ;
+
+    //mean >> /2020-04-07/2-OnlineScanNav
+    //arma::vec true_r_eb_e = { 3655482.807, 1404118.578, 5017917.000};
+    //arma::vec true_r_eb_e = { 3655472.0608506547287107, 1404122.9145570218097419, 5017929.7938752910122275};
+
+    //16M PPP
+    //arma::vec true_r_eb_e = { 3655411.386, 1404120.930, 5017902.834};
+
+    // 16M single
+    //arma::vec true_r_eb_e = { 3655470.884, 1404131.776, 5017938.950};
+
+    //arma::vec true_r_eb_e = { 3655479.590, 1404123.428, 5017946.443};
+
+
 
     arma::vec LLH =  LLH_to_deg(cart2geo(true_r_eb_e, 4));
 #endif
@@ -594,12 +803,6 @@ int main() //int argc, char** argv)
 
                 gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
 
-                if (valid)
-                {
-                    n = n + 2;
-                    n = n - 2;
-                }
-
                 if (0 && epoch_counter > 4900 && epoch_counter < 4910)
                 {
                     if (gns_syn.RX_time - prev_time > 1e-6)
@@ -644,6 +847,8 @@ int main() //int argc, char** argv)
         if (time_epoch % decym)
             continue;
 
+        // if (epoch_counter < 20)
+        //    continue;
 
         if (d_ls_pvt->get_PVT(gnss_synchro_map, false))
             {
@@ -696,8 +901,7 @@ int main() //int argc, char** argv)
 
                         std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
 
-                        //check results against the test tolerance
-                        if (error_3d_m >= 30.0)
+                        if (error_3d_m >= error_bound) //200.0)
                         {
                             std::cout << "3D positioning error BIG!" << std::endl;
                             big_err_num++;
@@ -711,7 +915,7 @@ int main() //int argc, char** argv)
                         }
 
                         fprintf(diffCsv, "%.12g; %g; %g\n", rx_time, error_3d_m, d_ls_pvt->get_gdop());
-                        //pvt_valid = true;
+
                     }else
                     {
                         std::cout << "not valid" << std::endl;
