@@ -543,6 +543,10 @@ int main() //int argc, char** argv)
 #endif
 
 
+
+    FILE *diffCsv = fopen((true_obs_file + "_diff.csv").c_str(), "w");
+    fprintf(diffCsv, "time; diff[m]; gdop\n");
+
     int64_t epoch_counter = 0;
     int time_epoch = 0;
     double prev_time = -1;
@@ -553,7 +557,9 @@ int main() //int argc, char** argv)
     {
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
+        double rx_time = 0;
         bool anyValid = false;
+
         for (int n = 0; n < dump_n_channels; n++)
         {
             //std::cout << "prn=" << *true_obs_data.PRN << std::endl;
@@ -609,6 +615,10 @@ int main() //int argc, char** argv)
                         std::cout << "---" << std::endl;
                 }
 
+                if (valid)
+                {
+                    rx_time = gns_syn.RX_time;
+                }
 
                 if (gns_syn.RX_time - prev_time > 1e-6)
                 {
@@ -661,7 +671,7 @@ int main() //int argc, char** argv)
                         // p_time += boost::posix_time::microseconds(round(rtklib_utc_time.sec * 1e6));
                         // std::cout << TEXT_MAGENTA << "Observable RX time (GPST) " << boost::posix_time::to_simple_string(p_time) << TEXT_RESET << std::endl;
 
-                        std::cout << "RTKLIB Position at RX TOW = " << gnss_synchro_map.begin()->second.RX_time
+                        std::cout << "RTKLIB Position at RX TOW = " << rx_time
                                   << " in ECEF (X,Y,Z,t[meters]) = " << std::fixed << std::setprecision(16)
                                   << d_ls_pvt->pvt_sol.rr[0] << ","
                                   << d_ls_pvt->pvt_sol.rr[1] << ","
@@ -698,6 +708,7 @@ int main() //int argc, char** argv)
                             sum_num++;
                         }
 
+                        fprintf(diffCsv, "%.12g; %g; %g\n", rx_time, error_3d_m, d_ls_pvt->get_gdop());
                         //pvt_valid = true;
                     }else
                     {
@@ -731,7 +742,8 @@ int main() //int argc, char** argv)
     // solve
     //bool pvt_valid = false;
 
-
+    fclose(diffCsv);
+    diffCsv = 0;
 
 	return 0;
 }
