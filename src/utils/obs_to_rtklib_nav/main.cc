@@ -519,6 +519,7 @@ int main() //int argc, char** argv)
     arma::vec sq_sum_ecef = { 0.0, 0.0, 0.0};
     arma::vec sum_meas_pos_ecef = { 0.0, 0.0, 0.0};
     int sum_num = 0;
+    int big_err_num = 0;
 
 #if (0)
     //todo: check here the positioning error against the reference position generated with gnss-sim
@@ -699,6 +700,7 @@ int main() //int argc, char** argv)
                         if (error_3d_m >= 30.0)
                         {
                             std::cout << "3D positioning error BIG!" << std::endl;
+                            big_err_num++;
                         }
                         else
                         {
@@ -724,6 +726,7 @@ int main() //int argc, char** argv)
     }
 
     std::cout << "-----------------" << std::endl;
+    std::cout << "big_err_num = " << big_err_num <<std::endl;
 
     if(sum_num)
     {
