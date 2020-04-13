@@ -55,6 +55,9 @@
 #define LOG(severity) std::cout
 
 
+//TODO Single vs PPP
+#define USE_PPP (1)
+
 
 rtk_t configure_rtklib_options()
 {
@@ -62,17 +65,23 @@ rtk_t configure_rtklib_options()
     configuration = std::make_shared<InMemoryConfiguration>();
     std::string role = "rtklib_solver";
 
-    // custom options
-    configuration->set_property("rtklib_solver.positioning_mode", "Single");
-    configuration->set_property("rtklib_solver.elevation_mask", "0");
-    configuration->set_property("rtklib_solver.iono_model", "OFF");
-    configuration->set_property("rtklib_solver.trop_model", "OFF");
-
-    //configuration->set_property("rtklib_solver.positioning_mode", "PPP_Static");
-    //configuration->set_property("rtklib_solver.elevation_mask", "0");
-    //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
-    //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
-
+    if (!USE_PPP)
+    {
+        // custom options
+        configuration->set_property("rtklib_solver.positioning_mode", "Single");
+        configuration->set_property("rtklib_solver.elevation_mask", "0");
+        configuration->set_property("rtklib_solver.iono_model", "OFF");
+        configuration->set_property("rtklib_solver.trop_model", "OFF");
+    }
+    else
+    {
+        configuration->set_property("rtklib_solver.positioning_mode", "PPP_Static");
+        configuration->set_property("rtklib_solver.elevation_mask", "0");
+        //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
+        //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
+        configuration->set_property("rtklib_solver.iono_model", "OFF");
+        configuration->set_property("rtklib_solver.trop_model", "OFF");
+    }
     //RTKLIB PVT solver options
 
     // Settings 1
