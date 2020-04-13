@@ -726,13 +726,17 @@ int main() //int argc, char** argv)
     }
 
     std::cout << "-----------------" << std::endl;
+    std::cout << "USE_PPP = " << USE_PPP << std::endl;
+    std::cout << "mean meas num = " << sum_num <<std::endl;
     std::cout << "big_err_num = " << big_err_num <<std::endl;
 
     if(sum_num)
     {
         std::cout << "3D RMS[m] = " << sqrt(arma::sum(sq_sum_ecef / sum_num)) << std::endl;
         arma::vec mean_pos = sum_meas_pos_ecef / sum_num;
-        std::cout << "mean meas ECEF position: { " << mean_pos(0) << ", " << mean_pos(1) << ", " << mean_pos(2) << "} " << std::endl;
+
+        std::cout << "ref ECEF position: { " << true_r_eb_e(0) << ", " << true_r_eb_e(1) << ", " << true_r_eb_e(2) << "}; " << std::endl;
+        std::cout << "mean meas ECEF position: { " << mean_pos(0) << ", " << mean_pos(1) << ", " << mean_pos(2) << "}; " << std::endl;
         std::cout << "mean - ref [m] = " << arma::norm(mean_pos - true_r_eb_e, 2) << std::endl;
     }
 
