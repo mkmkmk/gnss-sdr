@@ -428,6 +428,9 @@ int main() //int argc, char** argv)
     //std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
     //int dump_n_channels = 5;
 
+    // opcja filtrowania efemeryd wg TOE, -1 oznacza brak filtrowania
+    int find_toe = -1;
+
     // TODO file sel
 
 #if 0 && !USE_PPP
@@ -650,10 +653,20 @@ int main() //int argc, char** argv)
         std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
         for (gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
         {
-            std::cout << "SUPL: Read XML Ephemeris for GPS SV " << gps_eph_iter->first << std::endl;
+            //int prn = gps_eph_iter->first;
+            int prn = gps_eph_iter->second.i_satellite_PRN;
+            int toe = gps_eph_iter->second.d_Toe;
+            if(find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
+            {
+                std::cout << "SKIP EPH PRN: " <<  prn << " TOE: "<< toe << std::endl;
+                continue;
+            }
+            //std::cout << "SUPL: Read XML Ephemeris for GPS SV " << gps_eph_iter->first << std::endl;
+            std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << std::endl;
+
             std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
             // update/insert new ephemeris record to the global ephemeris map
-            d_ls_pvt->gps_ephemeris_map[gps_eph_iter->first] = *tmp_obj;
+            d_ls_pvt->gps_ephemeris_map[prn] = *tmp_obj;
         }
     }
     else
