@@ -424,14 +424,27 @@ rtk_t configure_rtklib_options()
 
 int main() //int argc, char** argv)
 {
+    // TODO file sel
+
     //std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
-    //std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
-    //int dump_n_channels = 5;
 
     // opcja filtrowania efemeryd wg TOE, -1 oznacza brak filtrowania
     int find_toe = -1;
 
-    // TODO file sel
+#if 0
+    const int error_bound = 200;
+
+    // gps-sdr-sim ref pos
+    arma::vec true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
+
+    int dump_n_channels = 5;
+    std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
+    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+    std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
+    find_toe = 518400;
+
+#endif
+
 
 #if 0 && !USE_PPP
 
