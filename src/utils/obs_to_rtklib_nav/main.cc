@@ -458,6 +458,8 @@ int main() //int argc, char** argv)
     std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
     find_toe = 518400;
 
+    std::string iono_xml_filename = "";
+
 #endif
 
 
@@ -568,6 +570,7 @@ int main() //int argc, char** argv)
     {
         // 4M 3D SD[m] = 95.65
         true_r_eb_e = arma::vec({ 3655475.8417131230235100, 1404138.1389957570936531, 5017940.8985855309292674});
+
     }
 
     int dump_n_channels = 8;
@@ -577,32 +580,26 @@ int main() //int argc, char** argv)
 
 
 #if 0
-    // current comp
     arma::vec true_r_eb_e;
 
     //const int error_bound = 200;
-    const int error_bound = 10;
+    const int error_bound = 20;
 
-    if(USE_PPP)
-    {
-        // error_bound = 200;
-        // true_r_eb_e = arma::vec(
-        //    { 3655415.6656871624290943, 1404120.1573056990746409, 5017908.0126902842894197});
-
-        // error_bound = 10
-        // 3D RMS[m] = 4.85
-        true_r_eb_e = arma::vec(
-            {3655426.2032937305048108,1404129.3436893990729004,5017912.1325014652684331});
-
-    }
-    else
-    {
-        true_r_eb_e = arma::vec({ 3655402.8336528479121625, 1404117.1551710774656385, 5017895.3089261008426547});
-    }
+    // gps-sdr-sim ref pos
+    true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
 
     int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/gps_ephemeris.xml";
+    //std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/observables.dat";
+    //std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-4-zero/observables.dat";
+    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-11/3-ok/observables.q32.dat";
+
+    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/gps_ephemeris.xml";
+    std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
+
+    std::string iono_xml_filename = "";
+
+    find_toe = 518400;
+    
 #endif
 
 
@@ -613,60 +610,56 @@ int main() //int argc, char** argv)
     const int error_bound = 200;
     //const int error_bound = 10;
 
-    if(USE_PPP)
-    {
-        // error_bound = 200, dziwna długo stosowana refer.
-        true_r_eb_e = arma::vec(
-            { 3655424.6915760519914329, 1404127.5425126673653722, 5017908.3038758812472224});
+    // gps-sdr-sim ref pos
+    //true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
 
-        // gps-sdr-sim ref pos
-        true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
+    //Kobyłka ref v2 2019-06-03
+    true_r_eb_e = arma::vec({3642332.408, 1411096.212, 5025380.626});
 
-        // error_bound = 10
-        //true_r_eb_e = arma::vec(
-        //        { 3655416.7486569550819695, 1404123.0403552409261465, 5017908.1269250828772783});
-        //true_r_eb_e = arma::vec(
-        //    {3655426.2032937305048108,1404129.3436893990729004,5017912.1325014652684331});
+    std::string dir = "/home/mk/Gnss/Results/2020-04-18/5/";
 
-    }
-    else
-    {
-        true_r_eb_e = arma::vec({ 3655474.9567744643427432, 1404137.4245814934838563, 5017939.5866936203092337});
-    }
+    //std::string dir = "/home/mk/Gnss/SimpRel/";
 
     int dump_n_channels = 8;
     //std::string true_obs_file = "/home/mk/Gnss/NaviSocRepo/tests/OnlineScanNav/observables.dat";
-    std::string true_obs_file = "/home/mk/Gnss/SimpRel/observables.q32.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
+    //std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
+    std::string true_obs_file = dir + "observables.q32.dat";
+    std::string eph_xml_filename = dir + "gps_ephemeris.xml";
+    std::string iono_xml_filename = dir + "gps_iono.xml";
+
+    //find_toe = 518400;
+    //find_toe = 547200;
+    //find_toe = 554400;
+    find_toe = 561600;
+    //find_toe = 568800;
+
+
 #endif
-
-
-
 
 
     // load ephemeris
     //std::string eph_xml_filename = path + "data/rtklib_test/eph_GPS_L1CA_test1_poprawiony.xml";
-
     // eph pochodzą z uruchomienia gnss-sdr na pliku z gns-sdr-sim
     //std::string eph_xml_filename = "data/rtklib_test/eeph_gpssim_pw.xml";
-
     //std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris.xml";
-
     //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
 
 
+    std::cout << "Hello World!" << std::endl;
 
-	std::cout << "Hello World!" << std::endl;
+    std::string path = std::string(TEST_PATH);
 
-	std::string path = std::string(TEST_PATH);
+    int nchannels = 8;
+    std::string dump_filename = ".rtklib_solver_dump.dat";
+    bool flag_dump_to_file = false;
+    bool save_to_mat = false;
+
+    rtk_t rtk = configure_rtklib_options();
 
     //std::unique_ptr<Rtklib_Solver> d_ls_pvt(
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
     //                           save_to_mat, rtk));
-	int nchannels = 8;
-	std::string dump_filename = ".rtklib_solver_dump.dat";
-	bool flag_dump_to_file = false;
-	bool save_to_mat = false;
 
     std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(nchannels, dump_filename, flag_dump_to_file, save_to_mat, rtk);
 
