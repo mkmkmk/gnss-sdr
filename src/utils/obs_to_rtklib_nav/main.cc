@@ -801,12 +801,13 @@ int main() //int argc, char** argv)
 
 
     FILE *diffCsv = fopen((true_obs_file + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff[m]; gdop\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop\n");
 
     int64_t epoch_counter = 0;
     int time_epoch = 0;
     double prev_time = -1;
     //int chan = 0;
+
 
     observables.restart();
     while (observables.read_binary_obs())
