@@ -697,8 +697,8 @@ int main() //int argc, char** argv)
         std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
     }
 
-#if 0
-    std::string iono_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_iono.xml";
+#if 1
+    //std::string iono_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_iono.xml";
     if(supl_client.load_iono_xml(iono_xml_filename) == true)
     {
         supl_client.gps_iono.valid = true;
