@@ -40,6 +40,8 @@
 //#include "tracking_true_obs_reader.h"
 #include "observables_dump_reader.h"
 
+#include "gpx_printer.h"
+
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/map.hpp>
@@ -645,17 +647,17 @@ int main() //int argc, char** argv)
 
 	std::string path = std::string(TEST_PATH);
 
+    //std::unique_ptr<Rtklib_Solver> d_ls_pvt(
+    //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
+    //                           save_to_mat, rtk));
 	int nchannels = 8;
 	std::string dump_filename = ".rtklib_solver_dump.dat";
 	bool flag_dump_to_file = false;
 	bool save_to_mat = false;
 
-	rtk_t rtk = configure_rtklib_options();
+    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(nchannels, dump_filename, flag_dump_to_file, save_to_mat, rtk);
 
-	std::unique_ptr<Rtklib_Solver> d_ls_pvt(
-			new Rtklib_Solver(nchannels, dump_filename, flag_dump_to_file,
-					save_to_mat, rtk));
-	d_ls_pvt->set_averaging_depth(1);
+    d_ls_pvt->set_averaging_depth(1);
 
 
     Gnss_Sdr_Supl_Client supl_client;
@@ -952,6 +954,8 @@ int main() //int argc, char** argv)
             }
 
 
+
+        gpx_dump.print_position(d_ls_pvt, false);
 
     }
 
