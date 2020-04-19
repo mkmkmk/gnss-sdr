@@ -794,6 +794,16 @@ int main() //int argc, char** argv)
 #endif
 
 
+    std::size_t dirPos = true_obs_file.find_last_of("/");
+    std::string gpxDir = true_obs_file.substr(0, dirPos);
+    std::string gpxFName = true_obs_file.substr(dirPos + 1, true_obs_file.length());
+
+    std::cout << "gpx dir: " << gpxDir << std::endl;
+    std::cout << "gpx fname: " << gpxFName << std::endl;
+
+    Gpx_Printer gpx_dump(gpxDir);
+    gpx_dump.set_headers(gpxFName);
+
 
     FILE *diffCsv = fopen((true_obs_file + "_diff.csv").c_str(), "w");
     fprintf(diffCsv, "time; diff[m]; gdop\n");
