@@ -677,9 +677,11 @@ int main() //int argc, char** argv)
             //int prn = gps_eph_iter->first;
             int prn = gps_eph_iter->second.i_satellite_PRN;
             int toe = gps_eph_iter->second.d_Toe;
+            int week = gps_eph_iter->second.i_GPS_week;
+
             if(find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
             {
-                std::cout << "SKIP EPH PRN: " <<  prn << " TOE: "<< toe << std::endl;
+                std::cout << "SKIP EPH PRN: " <<  prn << " TOE: "<< toe << " week: " << week << std::endl;
                 continue;
             }
             //std::cout << "SUPL: Read XML Ephemeris for GPS SV " << gps_eph_iter->first << std::endl;
