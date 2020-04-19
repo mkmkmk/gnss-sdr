@@ -817,6 +817,8 @@ int main() //int argc, char** argv)
         double rx_time = 0;
         bool anyValid = false;
 
+        bool error  = false;
+
         for (int n = 0; n < dump_n_channels; n++)
         {
             //std::cout << "prn=" << *true_obs_data.PRN << std::endl;
@@ -824,52 +826,84 @@ int main() //int argc, char** argv)
 
             bool valid = static_cast<bool>(observables.valid[n]);
 
+            //#warning dbg PRN OFF
+            //if (observables.PRN[n] == 26)
+            //    continue;
 
-            //if (valid)
+            if (!valid)
+                continue;
+
+            //if (observables.PRN[n] == 20)
+            //    observables.Acc_carrier_phase_hz[n] = 0;
+
+            //double ph_mul = trunc(observables.Acc_carrier_phase_hz[n] / 256 + .5);
+            //observables.Acc_carrier_phase_hz[n] -= ph_mul * 256;
+            //observables.Acc_carrier_phase_hz[n] /= 256;
+
+            Gnss_Synchro gns_syn;
+            gns_syn.System = 'G';
+            gns_syn.Signal[0] = '1';
+            gns_syn.Signal[1] = 'C';
+            gns_syn.Flag_valid_word = valid;
+            gns_syn.RX_time = observables.RX_time[n];
+
+#if 1
+            gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
+            gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
+            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
+            gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
+            gns_syn.PRN = observables.PRN[n];
+#else
+#warning DBG MIN MEAS
+            gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
+            gns_syn.Carrier_Doppler_hz = 0; // observables.Carrier_Doppler_hz[n];
+            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
+            //gns_syn.Carrier_phase_rads = ((int)observables.Acc_carrier_phase_hz[n]) * GPS_TWO_PI;
+            gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
+            gns_syn.PRN = observables.PRN[n];
+
+#endif
+            // src/algorithms/observables/gnuradio_blocks/hybrid_observables_gs.cc
+            //    tmp_double = out[i][0].RX_time;
+            //    tmp_double = out[i][0].interp_TOW_ms / 1000.0;
+            //    tmp_double = out[i][0].Carrier_Doppler_hz;
+            //    tmp_double = out[i][0].Carrier_phase_rads / GPS_TWO_PI;
+            //    tmp_double = out[i][0].Pseudorange_m;
+            //    tmp_double = static_cast<double>(out[i][0].PRN);
+            //    tmp_double = static_cast<double>(out[i][0].Flag_valid_pseudorange);
+
+#warning TEMP DBG IF
+            //if (gns_syn.PRN != 20)
+            gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
+
+            //if (0 && epoch_counter > 4900 && epoch_counter < 4910)
+            //if (1 && abs(gns_syn.RX_time - 518520.631) < 0.01)
+            if (0 && abs(gns_syn.RX_time - 518490) < 2)
             {
-                Gnss_Synchro gns_syn;
-                gns_syn.System = 'G';
-                gns_syn.Signal[0] = '1';
-                gns_syn.Signal[1] = 'C';
-                gns_syn.Flag_valid_word = valid;
-                gns_syn.RX_time = observables.RX_time[n];
-                gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
-                gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
-                gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
-                gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
-                gns_syn.PRN = observables.PRN[n];
+                if (gns_syn.RX_time - prev_time > 1e-6)
+                    std::cout << "***" << std::endl;
 
-                // src/algorithms/observables/gnuradio_blocks/hybrid_observables_gs.cc
-                //    tmp_double = out[i][0].RX_time;
-                //    tmp_double = out[i][0].interp_TOW_ms / 1000.0;
-                //    tmp_double = out[i][0].Carrier_Doppler_hz;
-                //    tmp_double = out[i][0].Carrier_phase_rads / GPS_TWO_PI;
-                //    tmp_double = out[i][0].Pseudorange_m;
-                //    tmp_double = static_cast<double>(out[i][0].PRN);
-                //    tmp_double = static_cast<double>(out[i][0].Flag_valid_pseudorange);
+                std::cout << std::setprecision(12);
+                std::cout << std::endl;
+                std::cout << "  valid = " << valid << std::endl;
+                std::cout << "    PRN = " << (int)gns_syn.PRN << std::endl;
+                std::cout << "RX_time = " << gns_syn.RX_time << std::endl;
+                std::cout << " TOW_ms = " << gns_syn.interp_TOW_ms << std::endl;
+                std::cout << "p-range = " << gns_syn.Pseudorange_m << std::endl;
+                if (n == dump_n_channels - 1)
+                    std::cout << "---" << std::endl;
+            }
 
-                gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
-
-                if (0 && epoch_counter > 4900 && epoch_counter < 4910)
+            if (valid)
+            {
+                if (anyValid && abs(rx_time - gns_syn.RX_time) > 1e-9)
                 {
-                    if (gns_syn.RX_time - prev_time > 1e-6)
-                        std::cout << "***" << std::endl;
-
-                    std::cout << std::setprecision(12);
-                    std::cout << std::endl;
-                    std::cout << "  valid = " << valid << std::endl;
-                    std::cout << "    PRN = " << (int)observables.PRN[n] << std::endl;
-                    std::cout << "RX_time = " << observables.RX_time[n] << std::endl;
-                    std::cout << " TOW_ms = " << observables.TOW_at_current_symbol_s[n] << std::endl;
-                    std::cout << "p-range = " << observables.Pseudorange_m[n] << std::endl;
-                    if (n == dump_n_channels - 1)
-                        std::cout << "---" << std::endl;
+                    std::cout << std::endl << "*** ERROR : time change in one row/measure !!" << std::endl << std::endl;
+                    error = true;
+                    break;
                 }
 
-                if (valid)
-                {
-                    rx_time = gns_syn.RX_time;
-                }
+                rx_time = gns_syn.RX_time;
 
                 if (gns_syn.RX_time - prev_time > 1e-6)
                 {
@@ -877,10 +911,13 @@ int main() //int argc, char** argv)
                     prev_time = gns_syn.RX_time;
                 }
 
+                anyValid = true;
             }
 
-            anyValid = anyValid || valid;
         }
+
+        if(error)
+            break;
 
         //chan ++;
         //if(chan==dump_chan_num)
@@ -897,86 +934,90 @@ int main() //int argc, char** argv)
         // if (epoch_counter < 20)
         //    continue;
 
-        if (d_ls_pvt->get_PVT(gnss_synchro_map, false))
-            {
-
-                // DEBUG MESSAGE: Display position in console output
-                if (d_ls_pvt->is_valid_position())
-                    {
-                        std::streamsize ss = std::cout.precision();  // save current precision
-                        std::cout.setf(std::ios::fixed, std::ios::floatfield);
-
-                        auto facet = new boost::posix_time::time_facet("%Y-%b-%d %H:%M:%S.%f %z");
-                        std::cout.imbue(std::locale(std::cout.getloc(), facet));
-
-                        std::cout << "Position at " << d_ls_pvt->get_position_UTC_time()
-                                  << " UTC using " << d_ls_pvt->get_num_valid_observations()
-                                  << std::fixed << std::setprecision(9)
-                                  << " observations is Lat = " << d_ls_pvt->get_latitude() << " [deg], Long = " << d_ls_pvt->get_longitude()
-                                  << std::fixed << std::setprecision(3)
-                                  << " [deg], Height = " << d_ls_pvt->get_height() << " [m]" << std::endl;
-                        std::cout << std::setprecision(ss);
-                        std::cout << "RX clock offset: " << d_ls_pvt->get_time_offset_s() << "[s]" << std::endl;
-
-                        // boost::posix_time::ptime p_time;
-                        // gtime_t rtklib_utc_time = gpst2time(adjgpsweek(d_ls_pvt->gps_ephemeris_map.cbegin()->second.i_GPS_week), d_rx_time);
-                        // p_time = boost::posix_time::from_time_t(rtklib_utc_time.time);
-                        // p_time += boost::posix_time::microseconds(round(rtklib_utc_time.sec * 1e6));
-                        // std::cout << TEXT_MAGENTA << "Observable RX time (GPST) " << boost::posix_time::to_simple_string(p_time) << TEXT_RESET << std::endl;
-
-                        std::cout << "RTKLIB Position at RX TOW = " << rx_time
-                                  << " in ECEF (X,Y,Z,t[meters]) = " << std::fixed << std::setprecision(16)
-                                  << d_ls_pvt->pvt_sol.rr[0] << ","
-                                  << d_ls_pvt->pvt_sol.rr[1] << ","
-                                  << d_ls_pvt->pvt_sol.rr[2] << std::endl;
-                        /* std::cout << "Dilution of Precision at " << boost::posix_time::to_simple_string(d_ls_pvt->get_position_UTC_time())
-                                 << " UTC using "<< d_ls_pvt->get_num_valid_observations() <<" observations is HDOP = " << d_ls_pvt->get_hdop() << " VDOP = "
-                                 << d_ls_pvt->get_vdop()
-                                 << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
+        //#warning dbg continue
+        //if(1 && rx_time < 566762) // 567165) //566762)
+        //    continue;
 
 
-                        double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
-                        std::cout << "Haversine Great Circle error LLH distance: " << error_LLH_m << " [meters]" << std::endl;
-
-                        arma::vec measured_r_eb_e = {d_ls_pvt->pvt_sol.rr[0], d_ls_pvt->pvt_sol.rr[1], d_ls_pvt->pvt_sol.rr[2]};
-
-                        arma::vec error_r_eb_e = measured_r_eb_e - true_r_eb_e;
-
-                        // std::cout << "ECEF position error vector: " << error_r_eb_e << " [meters]" << std::endl;
-
-                        double error_3d_m = arma::norm(error_r_eb_e, 2);
-
-                        std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
-
-                        if (error_3d_m >= error_bound) //200.0)
-                        {
-                            std::cout << "3D positioning error BIG!" << std::endl;
-                            big_err_num++;
-                        }
-                        else
-                        {
-                            std::cout << "3D positioning error OK!" << std::endl;
-                            sq_sum_ecef = sq_sum_ecef + arma::pow(error_r_eb_e, 2);
-                            sum_meas_pos_ecef = sum_meas_pos_ecef + measured_r_eb_e;
-                            sum_num++;
-                        }
-
-                        fprintf(diffCsv, "%.12g; %g; %g\n", rx_time, error_3d_m, d_ls_pvt->get_gdop());
-
-                    }else
-                    {
-                        std::cout << "not valid" << std::endl;
-                    }
-            }else
-            {
-                std::cout << "not comp" << std::endl;
-            }
+        if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
+        {
+            std::cout << "not comp" << std::endl;
+            continue;
+        }
 
 
+        // DEBUG MESSAGE: Display position in console output
+        if (!d_ls_pvt->is_valid_position())
+        {
+            std::cout << "not valid" << std::endl;
+            continue;
+        }
+
+        std::streamsize ss = std::cout.precision();  // save current precision
+        std::cout.setf(std::ios::fixed, std::ios::floatfield);
+
+        auto facet = new boost::posix_time::time_facet("%Y-%b-%d %H:%M:%S.%f %z");
+        std::cout.imbue(std::locale(std::cout.getloc(), facet));
+
+        std::cout << "Position at " << d_ls_pvt->get_position_UTC_time()
+                  << " UTC using " << d_ls_pvt->get_num_valid_observations()
+                  << std::fixed << std::setprecision(9)
+                  << " observations is Lat = " << d_ls_pvt->get_latitude() << " [deg], Long = " << d_ls_pvt->get_longitude()
+                  << std::fixed << std::setprecision(3)
+                  << " [deg], Height = " << d_ls_pvt->get_height() << " [m]" << std::endl;
+        std::cout << std::setprecision(ss);
+        std::cout << "RX clock offset: " << d_ls_pvt->get_time_offset_s() << "[s]" << std::endl;
+
+        // boost::posix_time::ptime p_time;
+        // gtime_t rtklib_utc_time = gpst2time(adjgpsweek(d_ls_pvt->gps_ephemeris_map.cbegin()->second.i_GPS_week), d_rx_time);
+        // p_time = boost::posix_time::from_time_t(rtklib_utc_time.time);
+        // p_time += boost::posix_time::microseconds(round(rtklib_utc_time.sec * 1e6));
+        // std::cout << TEXT_MAGENTA << "Observable RX time (GPST) " << boost::posix_time::to_simple_string(p_time) << TEXT_RESET << std::endl;
+
+        std::cout << "RTKLIB Position at RX TOW = " << rx_time
+                  << " in ECEF (X,Y,Z,t[meters]) = " << std::fixed << std::setprecision(16)
+                  << d_ls_pvt->pvt_sol.rr[0] << ","
+                  << d_ls_pvt->pvt_sol.rr[1] << ","
+                  << d_ls_pvt->pvt_sol.rr[2] << std::endl;
+        /* std::cout << "Dilution of Precision at " << boost::posix_time::to_simple_string(d_ls_pvt->get_position_UTC_time())
+                 << " UTC using "<< d_ls_pvt->get_num_valid_observations() <<" observations is HDOP = " << d_ls_pvt->get_hdop() << " VDOP = "
+                 << d_ls_pvt->get_vdop()
+                 << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
+
+
+        double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
+        std::cout << "Haversine Great Circle error LLH distance: " << error_LLH_m << " [meters]" << std::endl;
+
+        arma::vec measured_r_eb_e = {d_ls_pvt->pvt_sol.rr[0], d_ls_pvt->pvt_sol.rr[1], d_ls_pvt->pvt_sol.rr[2]};
+
+        arma::vec error_r_eb_e = measured_r_eb_e - true_r_eb_e;
+
+        // std::cout << "ECEF position error vector: " << error_r_eb_e << " [meters]" << std::endl;
+
+        double error_3d_m = arma::norm(error_r_eb_e, 2);
+
+        std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
+
+        if (error_3d_m >= error_bound) //200.0)
+        {
+            std::cout << "3D positioning error BIG!" << std::endl;
+            big_err_num++;
+        }
+        else
+        {
+            std::cout << "3D positioning error OK!" << std::endl;
+            sq_sum_ecef = sq_sum_ecef + arma::pow(error_r_eb_e, 2);
+            sum_meas_pos_ecef = sum_meas_pos_ecef + measured_r_eb_e;
+            sum_num++;
+        }
+
+        fprintf(diffCsv, "%.12g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop());
 
         gpx_dump.print_position(d_ls_pvt, false);
 
     }
+
+
 
     std::cout << "-----------------" << std::endl;
     std::cout << "USE_PPP = " << USE_PPP << std::endl;
