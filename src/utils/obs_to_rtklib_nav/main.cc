@@ -67,22 +67,35 @@ rtk_t configure_rtklib_options()
     configuration = std::make_shared<InMemoryConfiguration>();
     std::string role = "rtklib_solver";
 
+    /*
+    positioning_mode=PPP_Static  ; options: Single, Static, Kinematic, PPP_Static, PPP_Kinematic
+    iono_model=Broadcast ; options: OFF, Broadcast, SBAS, Iono-Free-LC, Estimate_STEC, IONEX
+    PVT.trop_model=Saastamoinen ; options: OFF, Saastamoinen, SBAS, Estimate_ZTD, Estimate_ZTD_Grad
+    */
+
     if (!USE_PPP)
     {
         // custom options
         configuration->set_property("rtklib_solver.positioning_mode", "Single");
-        configuration->set_property("rtklib_solver.elevation_mask", "0");
+        configuration->set_property("rtklib_solver.elevation_mask", "16");
         configuration->set_property("rtklib_solver.iono_model", "OFF");
         configuration->set_property("rtklib_solver.trop_model", "OFF");
+        //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
+        //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
+
     }
     else
     {
         configuration->set_property("rtklib_solver.positioning_mode", "PPP_Static");
+
         configuration->set_property("rtklib_solver.elevation_mask", "0");
-        //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
-        //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
+        //configuration->set_property("rtklib_solver.elevation_mask", "6");
+        //configuration->set_property("rtklib_solver.elevation_mask", "16");
+
         configuration->set_property("rtklib_solver.iono_model", "OFF");
         configuration->set_property("rtklib_solver.trop_model", "OFF");
+        //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
+        //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
     }
     //RTKLIB PVT solver options
 
