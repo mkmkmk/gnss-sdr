@@ -437,6 +437,50 @@ rtk_t configure_rtklib_options()
 
 
 
+std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int tow)
+{
+    std::map<int, Gps_Ephemeris> gps_ephemeris_map;
+    Gnss_Sdr_Supl_Client supl_client;
+
+    std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
+    if (supl_client.load_ephemeris_xml(eph_xml_filename) == true)
+    {
+        std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
+        for (gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
+        {
+            //int prn = gps_eph_iter->first;
+            int prn = gps_eph_iter->second.i_satellite_PRN;
+            int toe = gps_eph_iter->second.d_Toe;
+            int week = gps_eph_iter->second.i_GPS_week;
+
+            //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
+            //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
+            //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
+            if (tow > 0)
+            {
+                if (tow < toe || (gps_ephemeris_map.count(prn) && gps_ephemeris_map[prn].d_Toe > toe))
+                {
+                    std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
+                    continue;
+                }
+            }
+            //int min = -1;
+            // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
+
+            std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
+            std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
+            // update/insert new ephemeris record to the global ephemeris map
+            gps_ephemeris_map[prn] = *tmp_obj;
+        }
+    }
+    else
+    {
+        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
+    }
+    return gps_ephemeris_map;
+}
+
+
 int main() //int argc, char** argv)
 {
     // TODO file sel
@@ -444,7 +488,7 @@ int main() //int argc, char** argv)
     //std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
 
     // opcja filtrowania efemeryd wg TOE, -1 oznacza brak filtrowania
-    int find_toe = -1;
+    //int find_toe = -1;
 
 #if 0
     const int error_bound = 200;
@@ -456,7 +500,7 @@ int main() //int argc, char** argv)
     std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
     //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
     std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
-    find_toe = 518400;
+    //find_toe = 518400;
 
     std::string iono_xml_filename = "";
 
@@ -598,7 +642,7 @@ int main() //int argc, char** argv)
 
     std::string iono_xml_filename = "";
 
-    find_toe = 518400;
+    //find_toe = 518400;
     
 #endif
 
@@ -631,7 +675,7 @@ int main() //int argc, char** argv)
     //find_toe = 518400;
     //find_toe = 547200;
     //find_toe = 554400;
-    find_toe = 561600;
+    //find_toe = 561600;
     //find_toe = 568800;
 
 
@@ -668,34 +712,9 @@ int main() //int argc, char** argv)
 
     Gnss_Sdr_Supl_Client supl_client;
 
-    std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
-    if (supl_client.load_ephemeris_xml(eph_xml_filename) == true)
-    {
-        std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
-        for (gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
-        {
-            //int prn = gps_eph_iter->first;
-            int prn = gps_eph_iter->second.i_satellite_PRN;
-            int toe = gps_eph_iter->second.d_Toe;
-            int week = gps_eph_iter->second.i_GPS_week;
 
-            if(find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
-            {
-                std::cout << "SKIP EPH PRN: " <<  prn << " TOE: "<< toe << " week: " << week << std::endl;
-                continue;
-            }
-            //std::cout << "SUPL: Read XML Ephemeris for GPS SV " << gps_eph_iter->first << std::endl;
-            std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << std::endl;
+    //d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, find_toe);
 
-            std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
-            // update/insert new ephemeris record to the global ephemeris map
-            d_ls_pvt->gps_ephemeris_map[prn] = *tmp_obj;
-        }
-    }
-    else
-    {
-        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
-    }
 
 #if 1
     //std::string iono_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_iono.xml";
@@ -808,6 +827,8 @@ int main() //int argc, char** argv)
     double prev_time = -1;
     //int chan = 0;
 
+
+    int last_eph_update_tm = -1;
 
     observables.restart();
     while (observables.read_binary_obs())
@@ -938,6 +959,12 @@ int main() //int argc, char** argv)
         //if(1 && rx_time < 566762) // 567165) //566762)
         //    continue;
 
+
+        if (last_eph_update_tm < 0 || rx_time - last_eph_update_tm > 30)
+        {
+            d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
+            last_eph_update_tm = rx_time;
+        }
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
         {
