@@ -92,9 +92,9 @@ rtk_t configure_rtklib_options()
         //configuration->set_property("rtklib_solver.elevation_mask", "6");
         //configuration->set_property("rtklib_solver.elevation_mask", "16");
 
-        configuration->set_property("rtklib_solver.iono_model", "OFF");
+        //configuration->set_property("rtklib_solver.iono_model", "OFF");
         configuration->set_property("rtklib_solver.trop_model", "OFF");
-        //configuration->set_property("rtklib_solver.iono_model", "Broadcast");
+        configuration->set_property("rtklib_solver.iono_model", "Broadcast");
         //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
     }
     //RTKLIB PVT solver options
@@ -651,18 +651,17 @@ int main() //int argc, char** argv)
     // current comp
     arma::vec true_r_eb_e;
 
-    const int error_bound = 200;
+    const int error_bound = 50;
     //const int error_bound = 10;
 
     // gps-sdr-sim ref pos
-    //true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
+    true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
 
     //Kobyłka ref v2 2019-06-03
-    true_r_eb_e = arma::vec({3642332.408, 1411096.212, 5025380.626});
+    //true_r_eb_e = arma::vec({3642332.408, 1411096.212, 5025380.626});
 
-    std::string dir = "/home/mk/Gnss/Results/2020-04-18/5/";
-
-    //std::string dir = "/home/mk/Gnss/SimpRel/";
+    //std::string dir = "/home/mk/Gnss/Results/2020-04-21/1/";
+    std::string dir = "/home/mk/Gnss/SimpRel/";
 
     int dump_n_channels = 8;
     //std::string true_obs_file = "/home/mk/Gnss/NaviSocRepo/tests/OnlineScanNav/observables.dat";
@@ -994,6 +993,8 @@ int main() //int argc, char** argv)
 
         auto facet = new boost::posix_time::time_facet("%Y-%b-%d %H:%M:%S.%f %z");
         std::cout.imbue(std::locale(std::cout.getloc(), facet));
+
+
 
         std::cout << "Position at " << d_ls_pvt->get_position_UTC_time()
                   << " UTC using " << d_ls_pvt->get_num_valid_observations()
