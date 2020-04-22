@@ -900,9 +900,11 @@ int main() //int argc, char** argv)
             //    tmp_double = static_cast<double>(out[i][0].PRN);
             //    tmp_double = static_cast<double>(out[i][0].Flag_valid_pseudorange);
 
-#warning TEMP DBG IF
+            //#warning TEMP DBG IF
             //if (gns_syn.PRN != 20)
             gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
+            //gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(gns_syn.PRN, gns_syn));
+
 
             //if (0 && epoch_counter > 4900 && epoch_counter < 4910)
             //if (1 && abs(gns_syn.RX_time - 518520.631) < 0.01)
