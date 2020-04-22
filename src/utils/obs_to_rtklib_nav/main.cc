@@ -965,7 +965,7 @@ int main() //int argc, char** argv)
         //    continue;
 
         //#warning dbg continue
-        //if(1 && rx_time < 566762) // 567165) //566762)
+        //if(1 && rx_time < 557850) //|| rx_time > 559700) // 567165) //566762)
         //    continue;
 
 
@@ -1050,6 +1050,11 @@ int main() //int argc, char** argv)
         fprintf(diffCsv, "%.12g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop());
 
         gpx_dump.print_position(d_ls_pvt, false);
+
+        if (d_ls_pvt->get_num_valid_observations() == 0)
+        {
+            printf("d_ls_pvt->get_num_valid_observations() == 0 ??? !!! \n");
+        }
 
     }
 
