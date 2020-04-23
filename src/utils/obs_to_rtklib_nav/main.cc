@@ -37,7 +37,6 @@
 #include "rtklib_solver.h"
 #include "rtklib_rtkpos.h"
 
-//#include "tracking_true_obs_reader.h"
 #include "observables_dump_reader.h"
 
 #include "gpx_printer.h"
@@ -45,9 +44,6 @@
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/map.hpp>
-#include <iomanip>
-#include <iostream>
-#include <string>
 
 #include "file_configuration.h"
 
