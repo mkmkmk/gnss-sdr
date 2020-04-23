@@ -52,10 +52,6 @@
 #include "file_configuration.h"
 
 
-//#include <armadillo>
-//#include <gtest/gtest.h>
-
-
 #define LOG(severity) std::cout
 
 
@@ -523,11 +519,6 @@ int main(int argc, char** argv)
 #include "conf-inc-obso.c"
 #endif
     
-    std::cout << "Hello World!" << std::endl;
-
-    //std::string path = std::string(TEST_PATH);
-
-    //int nchannels = 8;
     std::string dump_filename = ".rtklib_solver_dump.dat";
     bool flag_dump_to_file = false;
     bool save_to_mat = false;
@@ -542,14 +533,8 @@ int main(int argc, char** argv)
 
     d_ls_pvt->set_averaging_depth(1);
 
-
     Gnss_Sdr_Supl_Client supl_client;
 
-    //d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, find_toe);
-
-
-#if 1
-    //std::string iono_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_iono.xml";
     if(supl_client.load_iono_xml(iono_xml_filename) == true)
     {
         supl_client.gps_iono.valid = true;
@@ -560,22 +545,16 @@ int main(int argc, char** argv)
     {
         std::cout << "ERROR: SUPL client error reading IONO XML" << std::endl;
     }
-#endif
 
-#if 1
-    //std::string utc_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_utc_model.xml";
     if (supl_client.load_utc_xml(utc_xml_filename) == true)
     {
         d_ls_pvt->gps_utc_model = supl_client.gps_utc;
         std::cout << "SUPL: Read XML UTC loaded" << std::endl;
-
     }
     else
     {
         std::cout << "ERROR: SUPL client error reading UTC XML" << std::endl;
     }
-#endif
-
 
 
     int decym = 1;
@@ -588,16 +567,11 @@ int main(int argc, char** argv)
     if (!observables.read_binary_obs())
         std::cout << "Failure reading true tracking dump file." << std::endl;
 
-    //auto nepoch = static_cast<unsigned int>(true_obs_data.num_epochs());
-    //std::cout << "Measured observations epochs = " << nepoch << std::endl;
-
-
     arma::vec sq_sum_ecef = { 0.0, 0.0, 0.0};
     arma::vec sum_meas_pos_ecef = { 0.0, 0.0, 0.0};
     int sum_num = 0;
     int big_err_num = 0;
 
-    // TODO sel refer.
 #if (0)
     //reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
     //arma::vec LLH = {30.286502, 120.032669, 100};  //ref position for this scenario
@@ -611,34 +585,10 @@ int main(int argc, char** argv)
     arma::vec true_v_eb_e;
     pv_Geo_to_ECEF(degtorad(LLH(0)), degtorad(LLH(1)), LLH(2), v_eb_n, true_r_eb_e, true_v_eb_e);
 #else
-    // gps-sdr-sim ref pos
-    //arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
-
-    //arma::vec true_r_eb_e = { 3655449.287, 1404116.477, 5017919.645};
-    //arma::vec true_r_eb_e = { 3655449.316, 1404116.447, 5017919.394};
-
-    //arma::vec true_r_eb_e = { 3655448.789, 1404116.414, 5017919.164};
-
-    // gps-sdr-sim + gnss-sdr, elev_mask=0, no decym
-    //arma::vec true_r_eb_e = { 3655430.929, 1404117.744, 5017912.359} ;
-
-    //mean >> /2020-04-07/2-OnlineScanNav
-    //arma::vec true_r_eb_e = { 3655482.807, 1404118.578, 5017917.000};
-    //arma::vec true_r_eb_e = { 3655472.0608506547287107, 1404122.9145570218097419, 5017929.7938752910122275};
-
-    //16M PPP
-    //arma::vec true_r_eb_e = { 3655411.386, 1404120.930, 5017902.834};
-
-    // 16M single
-    //arma::vec true_r_eb_e = { 3655470.884, 1404131.776, 5017938.950};
-
-    //arma::vec true_r_eb_e = { 3655479.590, 1404123.428, 5017946.443};
-
-
 
     arma::vec LLH =  LLH_to_deg(cart2geo(true_r_eb_e, 4));
-#endif
 
+#endif
 
     std::size_t dirPos = obs_filename.find_last_of("/");
     if (dirPos == std::string::npos)
@@ -741,20 +691,10 @@ int main(int argc, char** argv)
             gns_syn.PRN = observables.PRN[n];
 
 #endif
-            // src/algorithms/observables/gnuradio_blocks/hybrid_observables_gs.cc
-            //    tmp_double = out[i][0].RX_time;
-            //    tmp_double = out[i][0].interp_TOW_ms / 1000.0;
-            //    tmp_double = out[i][0].Carrier_Doppler_hz;
-            //    tmp_double = out[i][0].Carrier_phase_rads / GPS_TWO_PI;
-            //    tmp_double = out[i][0].Pseudorange_m;
-            //    tmp_double = static_cast<double>(out[i][0].PRN);
-            //    tmp_double = static_cast<double>(out[i][0].Flag_valid_pseudorange);
-
             //#warning TEMP DBG IF
             //if (gns_syn.PRN != 20)
             gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
             //gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(gns_syn.PRN, gns_syn));
-
 
             //if (0 && epoch_counter > 4900 && epoch_counter < 4910)
             //if (1 && abs(gns_syn.RX_time - 518520.631) < 0.01)
@@ -818,7 +758,6 @@ int main(int argc, char** argv)
         //if(1 && rx_time < 557850) //|| rx_time > 559700) // 567165) //566762)
         //    continue;
 
-
         if (last_eph_update_tm < 0 || rx_time - last_eph_update_tm > 30)
         {
             d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
@@ -831,8 +770,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-
-        // DEBUG MESSAGE: Display position in console output
         if (!d_ls_pvt->is_valid_position())
         {
             std::cout << "not valid" << std::endl;
@@ -844,8 +781,6 @@ int main(int argc, char** argv)
 
         auto facet = new boost::posix_time::time_facet("%Y-%b-%d %H:%M:%S.%f %z");
         std::cout.imbue(std::locale(std::cout.getloc(), facet));
-
-
 
         std::cout << "Position at " << d_ls_pvt->get_position_UTC_time()
                   << " UTC using " << d_ls_pvt->get_num_valid_observations()
@@ -879,8 +814,6 @@ int main(int argc, char** argv)
 
         arma::vec error_r_eb_e = measured_r_eb_e - true_r_eb_e;
 
-        // std::cout << "ECEF position error vector: " << error_r_eb_e << " [meters]" << std::endl;
-
         double error_3d_m = arma::norm(error_r_eb_e, 2);
 
         std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
@@ -909,7 +842,6 @@ int main(int argc, char** argv)
         }
 
     }
-
 
 
     std::cout << "-----------------" << std::endl;
