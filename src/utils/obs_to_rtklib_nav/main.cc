@@ -501,22 +501,22 @@ int main(int argc, char** argv)
 
     std::shared_ptr<FileConfiguration> configuration(new FileConfiguration(conf_path));
 
-    std::string obs_filename = configuration->property("main.obs_filename", std::string(""));
-    int obs_n_channels = configuration->property("main.obs_n_channels", 1);
+    std::string obs_filename = configuration->property("obs_to_nav.obs_filename", std::string(""));
+    int obs_n_channels = configuration->property("obs_to_nav.obs_n_channels", 1);
 
-    std::string eph_xml_filename = configuration->property("main.eph_xml_filename", std::string(""));
-    std::string iono_xml_filename = configuration->property("main.iono_xml_filename", std::string(""));
-    std::string utc_xml_filename = configuration->property("main.utc_model_xml_filename", std::string(""));
+    std::string eph_xml_filename = configuration->property("obs_to_nav.eph_xml_filename", std::string(""));
+    std::string iono_xml_filename = configuration->property("obs_to_nav.iono_xml_filename", std::string(""));
+    std::string utc_xml_filename = configuration->property("obs_to_nav.utc_model_xml_filename", std::string(""));
 
-    double ref_ecef_X = configuration->property("main.ref_ecef_X", 0.0);
-    double ref_ecef_Y = configuration->property("main.ref_ecef_Y", 0.0);
-    double ref_ecef_Z = configuration->property("main.ref_ecef_Z", 0.0);
+    double ref_ecef_X = configuration->property("obs_to_nav.ref_ecef_X", 0.0);
+    double ref_ecef_Y = configuration->property("obs_to_nav.ref_ecef_Y", 0.0);
+    double ref_ecef_Z = configuration->property("obs_to_nav.ref_ecef_Z", 0.0);
 
-    double error_bound = configuration->property("main.big_error_bound", 1.0);
+    double error_bound = configuration->property("obs_to_nav.big_error_bound", 1.0);
 
     arma::vec true_r_eb_e = arma::vec({ ref_ecef_X, ref_ecef_Y, ref_ecef_Z });
 
-    bool save_gpx = configuration->property("main.save_gpx", false);
+    bool save_gpx = configuration->property("obs_to_nav.save_gpx", false);
 
 
 #if 0
