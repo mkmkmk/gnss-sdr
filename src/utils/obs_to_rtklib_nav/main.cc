@@ -516,6 +516,9 @@ int main(int argc, char** argv)
 
     arma::vec true_r_eb_e = arma::vec({ ref_ecef_X, ref_ecef_Y, ref_ecef_Z });
 
+    bool save_gpx = configuration->property("main.save_gpx", false);
+
+
 #if 0
 #include "conf-inc-obso.c"
 #endif
@@ -638,14 +641,32 @@ int main(int argc, char** argv)
 
 
     std::size_t dirPos = obs_filename.find_last_of("/");
-    std::string gpxDir = obs_filename.substr(0, dirPos);
-    std::string gpxFName = obs_filename.substr(dirPos + 1, obs_filename.length());
+    if (dirPos == std::string::npos)
+        dirPos = 0;
 
-    std::cout << "gpx dir: " << gpxDir << std::endl;
-    std::cout << "gpx fname: " << gpxFName << std::endl;
+    std::string gpxDir =
+            dirPos ?
+                    obs_filename.substr(0, dirPos) :
+                    ".";
+
+    std::string gpxFName =
+            dirPos ?
+              obs_filename.substr(dirPos + 1, obs_filename.length()) :
+              obs_filename;
+
+    if (save_gpx)
+    {
+        std::cout << "gpx dir: " << gpxDir << std::endl;
+        std::cout << "gpx fname: " << gpxFName << std::endl;
+    }
+    else
+    {
+        std::cout << "gpx save OFF" << std::endl;
+    }
 
     Gpx_Printer gpx_dump(gpxDir);
-    gpx_dump.set_headers(gpxFName);
+    if (save_gpx)
+        gpx_dump.set_headers(gpxFName);
 
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
@@ -879,7 +900,8 @@ int main(int argc, char** argv)
 
         fprintf(diffCsv, "%.12g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop());
 
-        gpx_dump.print_position(d_ls_pvt, false);
+        if (save_gpx)
+            gpx_dump.print_position(d_ls_pvt, false);
 
         if (d_ls_pvt->get_num_valid_observations() == 0)
         {
