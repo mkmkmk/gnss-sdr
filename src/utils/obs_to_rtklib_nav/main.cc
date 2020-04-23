@@ -49,6 +49,8 @@
 #include <iostream>
 #include <string>
 
+#include "file_configuration.h"
+
 
 //#include <armadillo>
 //#include <gtest/gtest.h>
@@ -58,13 +60,13 @@
 
 
 //TODO Single vs PPP
-#define USE_PPP (1)
+//#define USE_PPP (1)
+
+std::string positioning_mode_str;
 
 
-rtk_t configure_rtklib_options()
+rtk_t configure_rtklib_options(std::shared_ptr<FileConfiguration> configuration)
 {
-    std::shared_ptr<InMemoryConfiguration> configuration;
-    configuration = std::make_shared<InMemoryConfiguration>();
     std::string role = "rtklib_solver";
 
     /*
@@ -72,7 +74,7 @@ rtk_t configure_rtklib_options()
     iono_model=Broadcast ; options: OFF, Broadcast, SBAS, Iono-Free-LC, Estimate_STEC, IONEX
     PVT.trop_model=Saastamoinen ; options: OFF, Saastamoinen, SBAS, Estimate_ZTD, Estimate_ZTD_Grad
     */
-
+#if 0
     if (!USE_PPP)
     {
         // custom options
@@ -98,14 +100,15 @@ rtk_t configure_rtklib_options()
         //configuration->set_property("rtklib_solver.trop_model", "Saastamoinen");
     }
     //RTKLIB PVT solver options
+#endif
 
     // Settings 1
     int positioning_mode = -1;
     std::string default_pos_mode("Single");
 
-    configuration->set_property(role + ".positioning_mode", default_pos_mode);
+    //configuration->set_property(role + ".positioning_mode", default_pos_mode);
 
-    std::string positioning_mode_str = configuration->property(role + ".positioning_mode", default_pos_mode); /* (PMODE_XXX) see src/algorithms/libs/rtklib/rtklib.h */
+    positioning_mode_str = configuration->property(role + ".positioning_mode", default_pos_mode); /* (PMODE_XXX) see src/algorithms/libs/rtklib/rtklib.h */
     if (positioning_mode_str == "Single")
         {
             positioning_mode = PMODE_SINGLE;
@@ -436,7 +439,6 @@ rtk_t configure_rtklib_options()
 }
 
 
-
 std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int tow)
 {
     std::map<int, Gps_Ephemeris> gps_ephemeris_map;
@@ -481,236 +483,64 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
 }
 
 
-int main() //int argc, char** argv)
+int main(int argc, char** argv)
 {
-    // TODO file sel
 
-    //std::string true_obs_file = std::string("/home/mk/Gnss/gnss-sdr-my/observables.dat");
-
-    // opcja filtrowania efemeryd wg TOE, -1 oznacza brak filtrowania
-    //int find_toe = -1;
-
-#if 0
-    const int error_bound = 200;
-
-    // gps-sdr-sim ref pos
-    arma::vec true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
-
-    int dump_n_channels = 5;
-    std::string true_obs_file = std::string("/home/mk/Gnss/Results/2020-04-05/1/observables.dat");
-    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
-    std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
-    //find_toe = 518400;
-
-    std::string iono_xml_filename = "";
-
-#endif
-
-
-#if 0 && !USE_PPP
-
-    // zapis z FPGA 16MHz bez pomiarów fazowych
-    // Single 3D SD[m] = 16.93
-    const int error_bound = 200;
-    //arma::vec true_r_eb_e = { 3655465.449, 1404114.512, 5017927.510};
-    arma::vec true_r_eb_e = { 3655463.659, 1404112.314, 5017924.853 };
-
-    // dla błędów < 20
-    // Single 3D SD[m] = 4.33
-    //arma::vec true_r_eb_e = { 3655465.449, 1404112.665, 5017926.698};
-
-    int dump_n_channels = 5;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2019-09-07/2/ticksExSavIQ.bin_obs.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
-
-#endif
-
-#if 0
-    // Single, iono+tropo OFF, mean - ref [m] = 7.04, 3D SD[m] = 18.36 ???
-    // arma::vec true_r_eb_e = { 3655479.590, 1404123.428, 5017946.443};
-    // 3D SD[m] = 92m
-
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-07/1/OnlineScanNav-gnss-sim-observables-ok.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-07/1/gps_ephemeris.xml";
-#endif
-
-#if 0
-    // PPP_Static, elev 0, iono off, sd-3d[m] = 0.0005-NIEPRAWDA
-    // ref = { 3655482.807, 1404118.578, 5017917.000};
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-07/2-OnlineScanNav/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-07/2-OnlineScanNav/gps_ephemeris.xml";
-#endif
-
-#if 0
-
-    // sym fs 16MHz
-    // PPP 3D SD[m] == 30m
-    const int error_bound = 200;
-    arma::vec true_r_eb_e = { 3655411.386, 1404120.930, 5017902.834};
-
-    // Single 3D SD[m] == 67m
-    //const int error_bound = 200;
-    // arma::vec true_r_eb_e = { 3655470.883, 1404131.776, 5017938.950};
-
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-1/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-1/gps_ephemeris.xml";
-#endif
-
-#if 0
-    const int error_bound = 200;
-    arma::vec true_r_eb_e;
-
-    //4MHz PPP 3D SD[m] = 43.7
-    if (USE_PPP)
-       true_r_eb_e = arma::vec({ 3655404.400, 1404118.848, 5017895.377});
-
-    //4MHz Single 3D SD[m] = 96
-    if (!USE_PPP)
-       true_r_eb_e = arma::vec({ 3655475.490, 1404137.966, 5017938.882});
-
-    // current comp
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-2/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-2/gps_ephemeris.xml";
-#endif
-
-#if 0
-    //16MHz, PPP, 3D SD[m] = 47.00
-    const int error_bound = 200;
-    arma::vec true_r_eb_e = { 3655432.602, 1404129.254, 5017900.940};
-
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-3/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-3/gps_ephemeris.xml";
-#endif
-
-#if 0
-    //16MHz, PPP, 3D SD[m] = 49.00
-    const int error_bound = 200;
-    arma::vec true_r_eb_e = { 3655432.872, 1404130.188, 5017901.024};
-    //16MHz, PPP, 3D SD[m] = 27.61
-    //const int error_bound = 40;
-    //arma::vec true_r_eb_e = { 3655439.9541424359194934, 1404114.2663816625718027, 5017912.8526892913505435};
-
-
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-4/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-08/OnlineScanNav-4/gps_ephemeris.xml";
-#endif
-
-#if 0
-    arma::vec true_r_eb_e;
-    const int error_bound = 200;
-
-    if(USE_PPP)
+    if(argc < 2)
     {
-        // 4M 3D SD[m] = 43.91
-        true_r_eb_e = arma::vec({ 3655403.844, 1404118.503, 5017895.504});
-    }
-    else
-    {
-        // 4M 3D SD[m] = 95.65
-        true_r_eb_e = arma::vec({ 3655475.8417131230235100, 1404138.1389957570936531, 5017940.8985855309292674});
-
+        printf("arg: conf path \n");
+        return 1;
     }
 
-    int dump_n_channels = 8;
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-1/observables.dat";
-    std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-1/gps_ephemeris.xml";
-#endif
+    std::string conf_path(argv[1]);
 
+    std::cout << "conf_path = " << conf_path << std::endl;
+
+    //std::shared_ptr<InMemoryConfiguration> configuration;
+    //configuration = std::make_shared<InMemoryConfiguration>();
+
+    std::shared_ptr<FileConfiguration> configuration(new FileConfiguration(conf_path));
+
+    std::string obs_filename = configuration->property("main.obs_filename", std::string(""));
+    int obs_n_channels = configuration->property("main.obs_n_channels", 1);
+
+    std::string eph_xml_filename = configuration->property("main.eph_xml_filename", std::string(""));
+    std::string iono_xml_filename = configuration->property("main.iono_xml_filename", std::string(""));
+    std::string utc_xml_filename = configuration->property("main.utc_model_xml_filename", std::string(""));
+
+    double ref_ecef_X = configuration->property("main.ref_ecef_X", 0.0);
+    double ref_ecef_Y = configuration->property("main.ref_ecef_Y", 0.0);
+    double ref_ecef_Z = configuration->property("main.ref_ecef_Z", 0.0);
+
+    double error_bound = configuration->property("main.big_error_bound", 1.0);
+
+    arma::vec true_r_eb_e = arma::vec({ ref_ecef_X, ref_ecef_Y, ref_ecef_Z });
 
 #if 0
-    arma::vec true_r_eb_e;
-
-    //const int error_bound = 200;
-    const int error_bound = 20;
-
-    // gps-sdr-sim ref pos
-    true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
-
-    int dump_n_channels = 8;
-    //std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/observables.dat";
-    //std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-4-zero/observables.dat";
-    std::string true_obs_file = "/home/mk/Gnss/Results/2020-04-11/3-ok/observables.q32.dat";
-
-    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-09/OnlineScanNav-3-plus/gps_ephemeris.xml";
-    std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
-
-    std::string iono_xml_filename = "";
-
-    //find_toe = 518400;
+#include "conf-inc-obso.c"
+#endif
     
-#endif
-
-
-#if 1
-    // current comp
-    arma::vec true_r_eb_e;
-
-    const int error_bound = 50;
-    //const int error_bound = 10;
-
-    // gps-sdr-sim ref pos
-    true_r_eb_e = arma::vec({ 3655463.659, 1404112.314, 5017924.853 });
-
-    //Kobyłka ref v2 2019-06-03
-    //true_r_eb_e = arma::vec({3642332.408, 1411096.212, 5025380.626});
-
-    //std::string dir = "/home/mk/Gnss/Results/2020-04-21/1/";
-    std::string dir = "/home/mk/Gnss/SimpRel/";
-
-    int dump_n_channels = 8;
-    //std::string true_obs_file = "/home/mk/Gnss/NaviSocRepo/tests/OnlineScanNav/observables.dat";
-    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
-    //std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris_full_brdc3540_14n.xml";
-    std::string true_obs_file = dir + "observables.q32.dat";
-    std::string eph_xml_filename = dir + "gps_ephemeris.xml";
-    std::string iono_xml_filename = dir + "gps_iono.xml";
-
-    //find_toe = 518400;
-    //find_toe = 547200;
-    //find_toe = 554400;
-    //find_toe = 561600;
-    //find_toe = 568800;
-
-
-#endif
-
-
-    // load ephemeris
-    //std::string eph_xml_filename = path + "data/rtklib_test/eph_GPS_L1CA_test1_poprawiony.xml";
-    // eph pochodzą z uruchomienia gnss-sdr na pliku z gns-sdr-sim
-    //std::string eph_xml_filename = "data/rtklib_test/eeph_gpssim_pw.xml";
-    //std::string eph_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_ephemeris.xml";
-    //std::string eph_xml_filename = "/home/mk/Gnss/Results/2020-04-05/1/gps_ephemeris.xml";
-
-
     std::cout << "Hello World!" << std::endl;
 
-    std::string path = std::string(TEST_PATH);
+    //std::string path = std::string(TEST_PATH);
 
-    int nchannels = 8;
+    //int nchannels = 8;
     std::string dump_filename = ".rtklib_solver_dump.dat";
     bool flag_dump_to_file = false;
     bool save_to_mat = false;
 
-    rtk_t rtk = configure_rtklib_options();
+    rtk_t rtk = configure_rtklib_options(configuration);
 
     //std::unique_ptr<Rtklib_Solver> d_ls_pvt(
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
     //                           save_to_mat, rtk));
 
-    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(nchannels, dump_filename, flag_dump_to_file, save_to_mat, rtk);
+    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(obs_n_channels, dump_filename, flag_dump_to_file, save_to_mat, rtk);
 
     d_ls_pvt->set_averaging_depth(1);
 
 
     Gnss_Sdr_Supl_Client supl_client;
-
 
     //d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, find_toe);
 
@@ -729,8 +559,8 @@ int main() //int argc, char** argv)
     }
 #endif
 
-#if 0
-    std::string utc_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_utc_model.xml";
+#if 1
+    //std::string utc_xml_filename = "/home/mk/Gnss/gnss-sdr-my/gps_utc_model.xml";
     if (supl_client.load_utc_xml(utc_xml_filename) == true)
     {
         d_ls_pvt->gps_utc_model = supl_client.gps_utc;
@@ -747,9 +577,9 @@ int main() //int argc, char** argv)
 
     int decym = 1;
 
-    Observables_Dump_Reader observables (dump_n_channels);  // 1 extra
+    Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
 
-    if (!observables.open_obs_file(true_obs_file))
+    if (!observables.open_obs_file(obs_filename))
         std::cout << "Failure opening true observables file" << std::endl;
 
     if (!observables.read_binary_obs())
@@ -807,9 +637,9 @@ int main() //int argc, char** argv)
 #endif
 
 
-    std::size_t dirPos = true_obs_file.find_last_of("/");
-    std::string gpxDir = true_obs_file.substr(0, dirPos);
-    std::string gpxFName = true_obs_file.substr(dirPos + 1, true_obs_file.length());
+    std::size_t dirPos = obs_filename.find_last_of("/");
+    std::string gpxDir = obs_filename.substr(0, dirPos);
+    std::string gpxFName = obs_filename.substr(dirPos + 1, obs_filename.length());
 
     std::cout << "gpx dir: " << gpxDir << std::endl;
     std::cout << "gpx fname: " << gpxFName << std::endl;
@@ -818,7 +648,7 @@ int main() //int argc, char** argv)
     gpx_dump.set_headers(gpxFName);
 
 
-    FILE *diffCsv = fopen((true_obs_file + "_diff.csv").c_str(), "w");
+    FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
     fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop\n");
 
     int64_t epoch_counter = 0;
@@ -839,7 +669,7 @@ int main() //int argc, char** argv)
 
         bool error  = false;
 
-        for (int n = 0; n < dump_n_channels; n++)
+        for (int n = 0; n < obs_n_channels; n++)
         {
             //std::cout << "prn=" << *true_obs_data.PRN << std::endl;
             //std::cout << "tow=" << *true_obs_data.TOW_at_current_symbol_s << std::endl;
@@ -919,7 +749,7 @@ int main() //int argc, char** argv)
                 std::cout << "RX_time = " << gns_syn.RX_time << std::endl;
                 std::cout << " TOW_ms = " << gns_syn.interp_TOW_ms << std::endl;
                 std::cout << "p-range = " << gns_syn.Pseudorange_m << std::endl;
-                if (n == dump_n_channels - 1)
+                if (n == obs_n_channels - 1)
                     std::cout << "---" << std::endl;
             }
 
@@ -1021,7 +851,6 @@ int main() //int argc, char** argv)
                  << d_ls_pvt->get_vdop()
                  << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
 
-
         double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
         std::cout << "Haversine Great Circle error LLH distance: " << error_LLH_m << " [meters]" << std::endl;
 
@@ -1062,7 +891,7 @@ int main() //int argc, char** argv)
 
 
     std::cout << "-----------------" << std::endl;
-    std::cout << "USE_PPP = " << USE_PPP << std::endl;
+    std::cout << "mode = " << positioning_mode_str << std::endl;
     std::cout << "mean meas num = " << sum_num <<std::endl;
     std::cout << "big_err_num = " << big_err_num <<std::endl;
 
@@ -1081,9 +910,6 @@ int main() //int argc, char** argv)
 
     std::cout << "DONE" << std::endl;
 
-
-    // solve
-    //bool pvt_valid = false;
 
     fclose(diffCsv);
     diffCsv = 0;
