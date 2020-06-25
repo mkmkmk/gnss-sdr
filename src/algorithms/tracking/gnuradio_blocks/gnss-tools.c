@@ -16,7 +16,7 @@
 
 
 #include "gnssSim.h"
-#include "gnss-sim-online.h"
+//#include "gnss-sim-online.h"
 #include "gnss-tools.h"
 #include "print-dma.h"
 
@@ -450,10 +450,10 @@ volatile int are_irq_enabled()
 
 void pause_interrupts()
 {
-    gnss_sim_irq_block();
-    gnss_sim_online_lock();
+    //gnss_sim_irq_block();
+    //gnss_sim_online_lock();
     CSR_CTRL_PTR->STATUS &= ~CSR_STAT_CIEN;
-    gnss_sim_online_unlock();
+    //gnss_sim_online_unlock();
     barrier();
 }
 
@@ -461,10 +461,10 @@ void pause_interrupts()
 void resume_interrupts()
 {
     barrier();
-    gnss_sim_online_lock();
+    //gnss_sim_online_lock();
     CSR_CTRL_PTR->STATUS |= CSR_STAT_CIEN;
-    gnss_sim_online_unlock();
-    gnss_sim_irq_unblock();
+    //gnss_sim_online_unlock();
+    //gnss_sim_irq_unblock();
 }
 
 
