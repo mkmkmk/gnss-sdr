@@ -8,8 +8,9 @@
 #ifndef PRINT_DMA_H_
 #define PRINT_DMA_H_
 
-int printdma(char *fmt, ...);
-int printdma_f(char *fmt, ...);
+
+int printdma(const char *fmt, ...);
+//int printdma_f(char *fmt, ...);
 
 
 void printdma_wait();

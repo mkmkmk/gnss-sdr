@@ -248,7 +248,7 @@ void printdma_buf(char *buf, int buf_len)
 
 #endif
 
-int printdma(char *fmt, ...);
+int printdma(const char *fmt, ...);
 
 void printdma_wait()
 {
@@ -266,7 +266,7 @@ void printdma_wait()
 }
 
 
-int printdma(char *fmt, ...)
+int printdma(const char *fmt, ...)
 {
 #ifdef TURN_OFF_PRINT
     return 0;
