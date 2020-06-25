@@ -161,12 +161,12 @@ static int RANGE_CHANNEL;
 //--------------  PERF_COUNTER --------------
 static const uint64_t Q32 = 0x100000000ll;
 
-pthread_mutex_t counter_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t range_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t trig_lock = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_mutex_t tickf_lock = PTHREAD_MUTEX_INITIALIZER;
-
+//pthread_mutex_t counter_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t range_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t trig_lock = PTHREAD_MUTEX_INITIALIZER;
+//
+//pthread_mutex_t tickf_lock = PTHREAD_MUTEX_INITIALIZER;
+//
 
 typedef struct
 {
@@ -820,9 +820,9 @@ int32_t GNSS_CODE_GET_CH(int ch)
                 CODE_PRI_CHIP_ADDR[ch] = 0;
                 pri_tick = 1;
 
-                pthread_mutex_lock(&counter_lock);
+                //pthread_mutex_lock(&counter_lock);
                 TICK_TIMESTAMP[ch] = pf_counter_get(pf_counter);
-                pthread_mutex_unlock(&counter_lock);
+                //pthread_mutex_unlock(&counter_lock);
 
                 CODE_SEC_CHIP_ADDR[ch] = CODE_SEC_CHIP_ADDR[ch] + 1;
                 if (CODE_SEC_CHIP_ADDR[ch] >= CODE_SEC_LENGTH[ch])
@@ -949,9 +949,9 @@ uint32_t GNSS_CODE_RNG(int range_channel)
         if(range_channel >= 0)
 #endif
         {
-            pthread_mutex_lock(&range_lock);
+            //pthread_mutex_lock(&range_lock);
             RANGE_CHANNEL = range_channel;
-            pthread_mutex_unlock(&range_lock);
+            //pthread_mutex_unlock(&range_lock);
         }
         res =
               (CODE_PRI_CHIP_ADDR_SAVED[CHANNEL] & 0xFFFF) |
@@ -961,15 +961,15 @@ uint32_t GNSS_CODE_RNG(int range_channel)
     }
     else if(rng_state == 1)
     {
-    	pthread_mutex_lock(&counter_lock);
+    	//pthread_mutex_lock(&counter_lock);
         res = TICK_TIMESTAMP[CHANNEL];
-        pthread_mutex_unlock(&counter_lock);
+        //pthread_mutex_unlock(&counter_lock);
     }
     else if(rng_state == 2)
     {
-    	pthread_mutex_lock(&counter_lock);
+    	//pthread_mutex_lock(&counter_lock);
         res = TICK_TIMESTAMP[CHANNEL] >> 32;
-        pthread_mutex_unlock(&counter_lock);
+        //pthread_mutex_unlock(&counter_lock);
     }
 #ifndef CPU_CCNV1_A1
     else
@@ -1060,9 +1060,9 @@ void GNSS_ACCU_ADD_CH(uint32_t samp, uint32_t code, int ch)
             ACCU[ch][i] = 0;
         }
 
-		pthread_mutex_lock(&range_lock);
+		//pthread_mutex_lock(&range_lock);
 		int rng_ch = RANGE_CHANNEL;
-		pthread_mutex_unlock(&range_lock);
+		//pthread_mutex_unlock(&range_lock);
 
         if(ch == rng_ch)
         {
@@ -1311,14 +1311,14 @@ void GNSS_TRACK_STEP(int32_t valIn)
 
     if(PERFCNT_PTR->STATUS & PERFCNT_STAT_EN)
     {
-        pthread_mutex_lock(&counter_lock);
+        //pthread_mutex_lock(&counter_lock);
         pf_counter_step(pf_counter);
         volatile uint64_t perf_counter = pf_counter_get(pf_counter);
         PERFCNT_PTR->CYCLE_LO = perf_counter;
         PERFCNT_PTR->CYCLE_HI = perf_counter >> 32;
-        pthread_mutex_unlock(&counter_lock);
+        //pthread_mutex_unlock(&counter_lock);
 
-        pthread_mutex_lock(&trig_lock);
+        //pthread_mutex_lock(&trig_lock);
         for(int ch = 0; ch < SIM_CHANNEL_NUM; ch++)
         {
 
@@ -1357,7 +1357,7 @@ void GNSS_TRACK_STEP(int32_t valIn)
             }
 
         }
-        pthread_mutex_unlock(&trig_lock);
+        //pthread_mutex_unlock(&trig_lock);
         prev_track_step_perf_counter = perf_counter;
     }
     vtrace_en(1);
@@ -1416,22 +1416,22 @@ void GNSS_PLAY_STEP(int32_t valIn)
 
 void gnss_sim_perf_counter_lock()
 {
-	pthread_mutex_lock(&counter_lock);
+	//pthread_mutex_lock(&counter_lock);
 }
 
 void gnss_sim_perf_counter_unlock()
 {
-	pthread_mutex_unlock(&counter_lock);
+	//pthread_mutex_unlock(&counter_lock);
 }
 
 void gnss_sim_tickf_lock()
 {
-    pthread_mutex_lock(&tickf_lock);
+    //pthread_mutex_lock(&tickf_lock);
 }
 
 void gnss_sim_tickf_unlock()
 {
-    pthread_mutex_unlock(&tickf_lock);
+    //pthread_mutex_unlock(&tickf_lock);
 }
 
 
@@ -1458,18 +1458,18 @@ void GNSS_FREE_ACCU_WR(int32_t conf, int32_t trigger)
     }
     else
     {
-        pthread_mutex_lock(&counter_lock);
+        //pthread_mutex_lock(&counter_lock);
         // czemu tu był step??
         //pf_counter_step(pf_counter);
         volatile uint64_t perf_counter = pf_counter_get(pf_counter);
-        pthread_mutex_unlock(&counter_lock);
+        //pthread_mutex_unlock(&counter_lock);
 
         if (0 && (trigger & 0xFFFFFF) < (perf_counter & 0xFFFFFF))
         {
             printdma("#trig<counter\n");
         }
 
-        pthread_mutex_lock(&trig_lock);
+        //pthread_mutex_lock(&trig_lock);
         if (conf == 0)
         {
             if(FREE_ACCU_TRIG_OFF_EN[CHANNEL])
@@ -1491,7 +1491,7 @@ void GNSS_FREE_ACCU_WR(int32_t conf, int32_t trigger)
             FREE_ACCU_TRIG_ON_EN[CHANNEL] = 1;
             FREE_ACCU_TRIG_ON[CHANNEL] = trigger & 0xFFFFFF;
         }
-        pthread_mutex_unlock(&trig_lock);
+        //pthread_mutex_unlock(&trig_lock);
     }
 }
 
