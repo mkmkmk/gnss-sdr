@@ -6,6 +6,10 @@
 #ifndef __GNSS_SIM_H__
 #define __GNSS_SIM_H__
 
+#ifndef GNSS_SIM
+#define GNSS_SIM
+#endif
+
 #ifdef GNSS_SIM
 
 #include <stdint.h>
