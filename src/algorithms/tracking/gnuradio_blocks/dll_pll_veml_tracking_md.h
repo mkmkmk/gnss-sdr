@@ -221,6 +221,12 @@ private:
     std::string d_dump_filename;
     bool d_dump;
     bool d_dump_mat;
+
+    // gnssSim
+    Track track;
+    //int hw_chan;
+    uint32_t pCodeL1[32];
+
 };
 
 #endif  // GNSS_SDR_DLL_PLL_VEML_TRACKING_MD_H

@@ -95,6 +95,7 @@ dll_pll_veml_tracking_md_sptr dll_pll_veml_make_tracking_md(const Dll_Pll_Conf &
     return dll_pll_veml_tracking_md_sptr(new dll_pll_veml_tracking_md(conf_));
 }
 
+static bool _first_chan_call = true;
 
 dll_pll_veml_tracking_md::dll_pll_veml_tracking_md(const Dll_Pll_Conf &conf_) : gr::block("dll_pll_veml_tracking", gr::io_signature::make(1, 1, sizeof(gr_complex)),
                                                                               gr::io_signature::make(1, 1, sizeof(Gnss_Synchro)))
@@ -136,6 +137,22 @@ dll_pll_veml_tracking_md::dll_pll_veml_tracking_md(const Dll_Pll_Conf &conf_) : 
     map_signal_pretty_name["B3"] = "B3I";
 
     signal_pretty_name = map_signal_pretty_name[signal_type];
+
+
+    // --------- gnss-sim
+    if (_first_chan_call)
+    {
+        gnss_sim_init((int) trk_parameters.fs_in);
+        GNSS_STATUS_WR(0xffffff);
+        enableGnssInterupts();
+
+        //int meas_clk_per_seq =
+
+
+        printdma("GnssSim inited");
+        _first_chan_call = false;
+    }
+
 
     if (trk_parameters.system == 'G')
         {
@@ -755,6 +772,47 @@ void dll_pll_veml_tracking_md::start_tracking()
     d_pull_in_transitory = true;
     d_Prompt_circular_buffer.clear();
     d_corrected_doppler = false;
+
+    // ---------
+    uint32_t code_chip_div_l1 = 5;
+    int chip_rate = GPS_L1_CA_CODE_RATE_HZ;
+    int seq_rate = 1 / GPS_L1_CA_CODE_PERIOD;
+    int f_sample = (int) trk_parameters.fs_in;
+    int mix_mode = 1;
+
+    Track conf_L1 =
+        {
+            .channel = 0,
+            .fsample = f_sample,
+            .freq = 0,
+            .chipRate = chip_rate,
+            .pCodeLen = (uint32_t)(chip_rate / seq_rate),
+            .sCodeLen = 0,
+            .codeChipDiv = code_chip_div_l1,
+            .bocDiv = 0,
+            .pCode = 0,
+            .sCode = 0,
+            .seqLen = f_sample / seq_rate,
+            .pllBn = 50,
+            .dllBn = 50,
+            .Kpll = 0.0f,
+            .Kdll = 0.0f,
+            .sumtime_ms = 1000 / seq_rate,
+            .pllC1 = 0,
+            .pllC2 = 0,
+            .dllC1 = 0,
+            .dllC2 = 0,
+            .seq_shift_samp = 0,
+            .nh_idx = 0
+
+        };
+
+    track = conf_L1;
+    int prn = d_acquisition_gnss_synchro->PRN;
+    goldseq_L1_32(Sat_ID_L1_n1(prn), Sat_ID_L1_n2(prn), pCodeL1);
+    track.pCode = pCodeL1;
+    setupChannel(d_channel, &track, mix_mode);
+
 }
 
 
