@@ -36,7 +36,7 @@ int32_t GnssSimChannelsNumber();
  * Initiates simulator state.
  */
 void gnss_sim_init(int fsample);
-  
+
 
 /**
  * Prints GNSS simulator state.
@@ -508,10 +508,10 @@ typedef struct
     uint32_t FIFOWR;    /*!< FIFO Write Override (for diagnostics only)           */
 } gnss_regs_t;
 
-gnss_regs_t foo_gnss_regs;
 
-
+static gnss_regs_t foo_gnss_regs;
 static volatile gnss_regs_t * const GNSS_PTR = &foo_gnss_regs;
+
 
 /** GNSS Controller Status Register Flags */
 enum
@@ -559,9 +559,10 @@ typedef struct
     uint32_t CPU_IDCODE;        /*!< JTAG Format Processor IDCODE           */
 } irq_regs_t;
 
-irq_regs_t foo_irq_regs;
 
+static irq_regs_t foo_irq_regs;
 static volatile irq_regs_t * const CSR_CTRL_PTR = &foo_irq_regs;
+
 
 /** IRQ Controller Status Register flags */
 enum
@@ -609,8 +610,10 @@ typedef struct
     uint32_t CYCLE_HI;          /*!< Clock Cycle Counter HI                 */
 } perfcnt_regs_t;
 
-perfcnt_regs_t foo_perfcnt_regs_t;
+
+static perfcnt_regs_t foo_perfcnt_regs_t;
 static volatile perfcnt_regs_t * const PERFCNT_PTR = &foo_perfcnt_regs_t;
+
 
 /** Performance Counter Status Register flags */
 enum
