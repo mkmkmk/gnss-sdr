@@ -69,6 +69,13 @@
 #include <map>
 #include <numeric>
 
+extern "C"
+{
+    #include "Sat_ID_L1.h"
+    #include "goldseq_L1_32.h"
+}
+
+
 #if HAS_STD_FILESYSTEM
 #if HAS_STD_FILESYSTEM_EXPERIMENTAL
 #include <experimental/filesystem>

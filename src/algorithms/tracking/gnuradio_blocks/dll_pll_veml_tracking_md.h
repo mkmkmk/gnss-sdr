@@ -48,6 +48,14 @@
 #include <utility>                // for pair
 #include <vector>
 
+extern "C"
+{
+    #include "print-dma.h"
+    #include "gnssSim.h"
+    #include "gnss-tools.h"
+}
+
+
 class Gnss_Synchro;
 class dll_pll_veml_tracking_md;
 
