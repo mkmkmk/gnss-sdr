@@ -90,6 +90,27 @@ namespace fs = boost::filesystem;
 #endif
 
 
+// --------- gnssSim
+static gr::thread::mutex d_gnss_sim_lock;
+
+#define _SIGN(value) (value >= 0 ? 1 : -1)
+// mnożenie Q10 i kwantowanie 1, 3, 5, 7 ...
+#define _SCALE_1357(value, mul_Q10) (1 + (((abs(value) * (mul_Q10 >> 1)) >> 10) << 1)) * _SIGN(value)
+#define SIG_MUL_Q10 (30)
+//#define SIG_MUL_Q10 (100)
+
+#define TICKS_INFO_MASK 0x3FF
+
+static bool _isTickChan[SIM_CHANNEL_NUM];
+static int64_t _gnss_sim_track_chan_samp = 0;
+
+// tak naprawdę tylko ten kanał karmi próbkami gnssSim
+#define GNSS_SIM_TRACK_CHAN (0)
+
+// ---------
+
+
+
 dll_pll_veml_tracking_md_sptr dll_pll_veml_make_tracking_md(const Dll_Pll_Conf &conf_)
 {
     return dll_pll_veml_tracking_md_sptr(new dll_pll_veml_tracking_md(conf_));
@@ -149,7 +170,7 @@ dll_pll_veml_tracking_md::dll_pll_veml_tracking_md(const Dll_Pll_Conf &conf_) : 
         //int meas_clk_per_seq =
 
 
-        printdma("GnssSim inited");
+        printdma("-- GnssSim inited -- \a \n");
         _first_chan_call = false;
     }
 
@@ -583,6 +604,8 @@ void dll_pll_veml_tracking_md::msg_handler_telemetry_to_trk(const pmt::pmt_t &ms
 void dll_pll_veml_tracking_md::start_tracking()
 {
     gr::thread::scoped_lock l(d_setlock);
+    gr::thread::scoped_lock lock(d_gnss_sim_lock);
+
     // correct the code phase according to the delay between acq and trk
     d_acq_code_phase_samples = d_acquisition_gnss_synchro->Acq_delay_samples;
     d_acq_carrier_doppler_hz = d_acquisition_gnss_synchro->Acq_doppler_hz;
@@ -779,18 +802,20 @@ void dll_pll_veml_tracking_md::start_tracking()
     int seq_rate = 1 / GPS_L1_CA_CODE_PERIOD;
     int f_sample = (int) trk_parameters.fs_in;
     int mix_mode = 1;
+    int prn = d_acquisition_gnss_synchro->PRN;
+    goldseq_L1_32(Sat_ID_L1_n1(prn), Sat_ID_L1_n2(prn), d_pCodeL1);
 
-    Track conf_L1 =
+    Track itrack =
         {
             .channel = 0,
             .fsample = f_sample,
-            .freq = 0,
+            .freq = (int)d_carrier_doppler_hz,
             .chipRate = chip_rate,
             .pCodeLen = (uint32_t)(chip_rate / seq_rate),
             .sCodeLen = 0,
             .codeChipDiv = code_chip_div_l1,
             .bocDiv = 0,
-            .pCode = 0,
+            .pCode = d_pCodeL1,
             .sCode = 0,
             .seqLen = f_sample / seq_rate,
             .pllBn = 50,
@@ -807,12 +832,13 @@ void dll_pll_veml_tracking_md::start_tracking()
 
         };
 
-    track = conf_L1;
-    int prn = d_acquisition_gnss_synchro->PRN;
-    goldseq_L1_32(Sat_ID_L1_n1(prn), Sat_ID_L1_n2(prn), pCodeL1);
-    track.pCode = pCodeL1;
-    setupChannel(d_channel, &track, mix_mode);
+    d_track = itrack;
 
+    setupChannel(d_channel, &d_track, mix_mode);
+
+    lock_det_init(&d_lock_det);
+    setFreeAccu(d_channel, 1);
+    setFreeUpdate(d_channel, 1);
 }
 
 
@@ -959,6 +985,28 @@ bool dll_pll_veml_tracking_md::cn0_and_tracking_lock_status(double coh_integrati
 }
 
 
+void dll_pll_veml_tracking_md::track_step(int sampI, int sampQ)
+{
+    sampI = _SCALE_1357(sampI, SIG_MUL_Q10);
+    sampQ = _SCALE_1357(sampQ, SIG_MUL_Q10);
+
+    int inp = (sampI & 0xFFFF) | ((sampQ & 0xFFFF) << 16);
+    GNSS_TRACK_STEP(inp);
+    //TODO isr4()
+    //isr4();
+
+    for (int ch = 0; ch < SIM_CHANNEL_NUM; ++ch)
+    {
+        GNSS_CHANN_SET(ch);
+        if (!IS_PTICK(GNSS_CODE_GET()))
+            continue;
+        _isTickChan[ch] = true;
+    }
+
+}
+
+
+
 // correlation requires:
 // - updated remnant carrier phase in radians (rem_carr_phase_rad)
 // - updated remnant code phase in samples (d_rem_code_phase_samples)
@@ -989,6 +1037,43 @@ void dll_pll_veml_tracking_md::do_correlation_step(const gr_complex *input_sampl
                 static_cast<float>(d_code_phase_rate_step_chips) * static_cast<float>(d_code_samples_per_chip),
                 trk_parameters.vector_length);
         }
+
+    //gnssSim_step(input_samples);
+}
+
+
+void dll_pll_veml_tracking_md::gnssSim_step(const gr_complex *input_samples, int samp_num)
+{
+    //MK dodane być może niszczy wielowątkowość
+    gr::thread::scoped_lock lock(d_gnss_sim_lock);
+
+    // w gnssSim track-step dotyczy wszystkich kanałów
+    if (d_channel == GNSS_SIM_TRACK_CHAN)
+    {
+#warning todo d_current_prn_length_samples ??
+        //trk_parameters.vector_length
+        //d_current_prn_length_samples
+        for (int i = 0; i < samp_num; ++i)
+            track_step((int) input_samples[i].real(), (int) input_samples[i].imag());
+        _gnss_sim_track_chan_samp += samp_num;
+    }
+
+    if (_isTickChan[d_channel])
+    {
+        _isTickChan[d_channel] = false;
+
+        GNSS_CHANN_SET(d_channel);
+        d_tick_idx++;
+
+        int accu[10];
+        int lock;
+        readAccu(accu, &lock);
+
+        int s_lock = lock_det_next(&d_lock_det, accu[0], accu[1]);
+
+        if ((d_tick_idx & TICKS_INFO_MASK) == d_channel * 2)
+           printdma("#%d|S%d|%d/%d\n", d_channel, s_lock, (accu[0] + 512) >> 10, (accu[1] + 512) >> 10);
+    }
 }
 
 
@@ -1639,6 +1724,13 @@ void dll_pll_veml_tracking_md::stop_tracking()
     d_state = 0;
 }
 
+void dll_pll_veml_tracking_md::gnssSim_sync(int64_t acq_code_phase_samples0, double T_prn_mod_samples)
+{
+   gr::thread::scoped_lock lock(d_gnss_sim_lock);
+   int64_t delta = _gnss_sim_track_chan_samp - (int64_t)d_acq_sample_stamp - acq_code_phase_samples0; // - (int64_t)(d_acq_code_phase_samples + .5);
+   int toshift = std::fmod(T_prn_mod_samples * 100 + delta, T_prn_mod_samples);
+   setCodeShift(&d_track, toshift);
+}
 
 int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unused)), gr_vector_int &ninput_items,
     gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
@@ -1663,6 +1755,7 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
         case 0:  // Standby - Consume samples at full throttle, do nothing
             {
                 d_sample_counter += static_cast<uint64_t>(ninput_items[0]);
+                gnssSim_step(in, ninput_items[0]);
                 consume_each(ninput_items[0]);
                 return 0;
                 break;
@@ -1673,7 +1766,7 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
                 int64_t acq_trk_diff_samples = static_cast<int64_t>(d_sample_counter) - static_cast<int64_t>(d_acq_sample_stamp);
                 double acq_trk_diff_seconds = static_cast<double>(acq_trk_diff_samples) / trk_parameters.fs_in;
                 double delta_trk_to_acq_prn_start_samples = static_cast<double>(acq_trk_diff_samples) - d_acq_code_phase_samples;
-
+                int64_t acq_code_phase_samples0 = d_acq_code_phase_samples + .5;
                 d_code_freq_chips = d_code_chip_rate;
                 d_code_phase_step_chips = d_code_freq_chips / trk_parameters.fs_in;
                 d_code_phase_rate_step_chips = 0.0;
@@ -1685,6 +1778,8 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
                 d_current_prn_length_samples = round(T_prn_mod_samples);
 
                 int32_t samples_offset = round(d_acq_code_phase_samples);
+
+
                 d_acc_carrier_phase_rad -= d_carrier_phase_step_rad * static_cast<double>(samples_offset);
                 d_state = 2;
                 d_sample_counter += samples_offset;  // count for the processed samples
@@ -1695,12 +1790,16 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
                 DLOG(INFO) << "PULL-IN Doppler [Hz] = " << d_carrier_doppler_hz
                            << ". PULL-IN Code Phase [samples] = " << d_acq_code_phase_samples;
 
+                gnssSim_step(in, samples_offset);
                 consume_each(samples_offset);  // shift input to perform alignment with local replica
+                gnssSim_sync(acq_code_phase_samples0, T_prn_mod_samples);
+
                 return 0;
             }
         case 2:  // Wide tracking and symbol synchronization
             {
                 do_correlation_step(in);
+                gnssSim_step(in, d_current_prn_length_samples);
                 // Save single correlation step variables
                 if (d_veml)
                     {
@@ -1830,6 +1929,7 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
             {
                 // perform a correlation step
                 do_correlation_step(in);
+                gnssSim_step(in, d_current_prn_length_samples);
                 save_correlation_results();
                 update_tracking_vars();
                 if (d_current_data_symbol == 0)
@@ -1860,6 +1960,7 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
             {
                 // perform a correlation step
                 do_correlation_step(in);
+                gnssSim_step(in, d_current_prn_length_samples);
                 save_correlation_results();
 
                 // check lock status

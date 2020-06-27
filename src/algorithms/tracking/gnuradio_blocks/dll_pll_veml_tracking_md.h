@@ -48,11 +48,14 @@
 #include <utility>                // for pair
 #include <vector>
 
+#include <mutex>
+
 extern "C"
 {
     #include "print-dma.h"
     #include "gnssSim.h"
     #include "gnss-tools.h"
+    #include "lock_det.h"
 }
 
 
@@ -222,11 +225,17 @@ private:
     bool d_dump;
     bool d_dump_mat;
 
-    // gnssSim
-    Track track;
+    //------------- gnssSim
+    Track d_track;
     //int hw_chan;
-    uint32_t pCodeL1[32];
+    uint32_t d_pCodeL1[32];
+    lock_det d_lock_det;
+    int d_tick_idx;
 
+    void track_step(int sampI, int sampQ);
+    void gnssSim_step(const gr_complex *input_samples, int samp_num);
+    void gnssSim_upd_samp();
+    void gnssSim_sync(int64_t acq_code_phase_samples0, double T_prn_mod_samples);
 };
 
 #endif  // GNSS_SDR_DLL_PLL_VEML_TRACKING_MD_H
