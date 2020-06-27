@@ -866,7 +866,7 @@ void setCodeShift(Track *track, int toShift)
 		//unsigned code_nco = (unsigned)(((uint64_t)toShift * (track->chipRate / 1000) / track->seqLen * track->codeChipDiv) << 32);
 
 		//TODO BOC_PTR !!
-		float chip = (float)toShift * track->chipRate / 1000 / track->seqLen;
+		float chip = (float)toShift * track->chipRate / track->fsample;
 		unsigned addr = chip;
 		float chipFrac = chip - truncf(chip);
 		unsigned code_nco = (unsigned)(chipFrac * track->codeChipDiv * Q32);
@@ -921,7 +921,7 @@ void track_step(int sampI, int sampQ)
 {
   int inp = (sampI & 0xFFFF) | ((sampQ & 0xFFFF) << 16);
   GNSS_TRACK_STEP(inp);
-  
+
 }
 
 

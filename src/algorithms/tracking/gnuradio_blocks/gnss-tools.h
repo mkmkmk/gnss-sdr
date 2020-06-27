@@ -70,7 +70,7 @@ typedef struct
   int freq;
 
   /** chip frequency [Hz] */
-  int  chipRate;
+  int chipRate;
 
   /** primary code length */
   uint32_t pCodeLen;
