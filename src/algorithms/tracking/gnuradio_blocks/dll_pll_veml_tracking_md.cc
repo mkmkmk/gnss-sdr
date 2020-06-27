@@ -173,7 +173,8 @@ dll_pll_veml_tracking_md::dll_pll_veml_tracking_md(const Dll_Pll_Conf &conf_) : 
         printdma("-- GnssSim inited -- \a \n");
         _first_chan_call = false;
     }
-
+    d_s_lock = 0;
+    d_tick_idx = 0;
 
     if (trk_parameters.system == 'G')
         {
@@ -833,7 +834,8 @@ void dll_pll_veml_tracking_md::start_tracking()
         };
 
     d_track = itrack;
-
+    d_tick_idx = 0;
+    d_s_lock = 0;
     setupChannel(d_channel, &d_track, mix_mode);
 
     lock_det_init(&d_lock_det);
@@ -1069,10 +1071,10 @@ void dll_pll_veml_tracking_md::gnssSim_step(const gr_complex *input_samples, int
         int lock;
         readAccu(accu, &lock);
 
-        int s_lock = lock_det_next(&d_lock_det, accu[0], accu[1]);
+        d_s_lock = lock_det_next(&d_lock_det, accu[0], accu[1]);
 
         if ((d_tick_idx & TICKS_INFO_MASK) == d_channel * 2)
-           printdma("#%d|S%d|%d/%d\n", d_channel, s_lock, (accu[0] + 512) >> 10, (accu[1] + 512) >> 10);
+           printdma("#%d|S%d|%d/%d\n", d_channel, d_s_lock, (accu[0] + 512) >> 10, (accu[1] + 512) >> 10);
     }
 }
 
@@ -1727,9 +1729,11 @@ void dll_pll_veml_tracking_md::stop_tracking()
 void dll_pll_veml_tracking_md::gnssSim_sync(int64_t acq_code_phase_samples0, double T_prn_mod_samples)
 {
    gr::thread::scoped_lock lock(d_gnss_sim_lock);
+   printdma("#%d| TRACK SYNC\n", d_channel);
    int64_t delta = _gnss_sim_track_chan_samp - (int64_t)d_acq_sample_stamp - acq_code_phase_samples0; // - (int64_t)(d_acq_code_phase_samples + .5);
    int toshift = std::fmod(T_prn_mod_samples * 100 + delta, T_prn_mod_samples);
    setCodeShift(&d_track, toshift);
+   d_tick_idx = 0;
 }
 
 int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unused)), gr_vector_int &ninput_items,

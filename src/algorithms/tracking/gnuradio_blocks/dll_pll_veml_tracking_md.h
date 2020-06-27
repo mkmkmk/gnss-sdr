@@ -231,6 +231,7 @@ private:
     uint32_t d_pCodeL1[32];
     lock_det d_lock_det;
     int d_tick_idx;
+    int d_s_lock;
 
     void track_step(int sampI, int sampQ);
     void gnssSim_step(const gr_complex *input_samples, int samp_num);
