@@ -458,7 +458,7 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
             {
                 if (tow < toe || (gps_ephemeris_map.count(prn) && gps_ephemeris_map[prn].d_Toe > toe))
                 {
-                    std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
+                    //std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
                     continue;
                 }
             }
@@ -466,6 +466,7 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
             // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
 
             std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
+
             std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
             // update/insert new ephemeris record to the global ephemeris map
             gps_ephemeris_map[prn] = *tmp_obj;
