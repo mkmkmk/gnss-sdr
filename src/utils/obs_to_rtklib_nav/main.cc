@@ -916,9 +916,11 @@ int main(int argc, char** argv)
 
         }
 
-        if(error)
-            break;
-
+        if (error)
+        {
+            // break;
+            continue;
+        }
         //chan ++;
         //if(chan==dump_chan_num)
         //    chan = 0;
