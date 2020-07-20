@@ -797,6 +797,8 @@ int main(int argc, char** argv)
     double prev_time = -1;
     //int chan = 0;
 
+    rtkopenstat((obs_filename + "_stat.txt").c_str(), 2);
+
     FILE *fcsv_ch[obs_n_channels];
     double prev_csv_carr[obs_n_channels];
     double prev_csv_tm[obs_n_channels];
@@ -997,6 +999,8 @@ int main(int argc, char** argv)
             continue;
         }
 
+        //d_ls_pvt->do_rtkoutstat();
+
         std::streamsize ss = std::cout.precision();  // save current precision
         std::cout.setf(std::ios::fixed, std::ios::floatfield);
 
@@ -1099,6 +1103,7 @@ int main(int argc, char** argv)
 
     std::cout << "DONE" << std::endl;
 
+    rtkclosestat();
 
     fclose(diffCsv);
     diffCsv = 0;
