@@ -617,6 +617,35 @@ void close_obs_csv(FILE **fcsv_ch, int chan_num)
     }
 }
 
+template <size_t N>
+class MovingMean
+{
+private:
+    double samples_[N];
+    size_t num_samples_{0};
+    double total_{0};
+
+public:
+    double next(double sample)
+    {
+        if (num_samples_ < N)
+        {
+            samples_[num_samples_++] = sample;
+            total_ += sample;
+        }
+        else
+        {
+            double& oldest = samples_[num_samples_++ % N];
+            total_ += sample - oldest;
+            oldest = sample;
+        }
+        return total_ / std::min(num_samples_, N);
+    }
+
+
+};
+
+
 
 int main(int argc, char** argv)
 {
