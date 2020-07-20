@@ -1116,7 +1116,7 @@ int main(int argc, char** argv)
     std::cout << "epoch_counter = " << epoch_counter << std::endl;
     std::cout << "time_epoch    = " << time_epoch << std::endl;
 
-    std::cout << "DONE" << std::endl;
+    std::cout << "DONE *" << std::endl;
 
     rtkclosestat();
 
