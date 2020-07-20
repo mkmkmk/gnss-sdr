@@ -910,6 +910,20 @@ int main(int argc, char** argv)
         {
             d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
             last_eph_update_tm = rx_time;
+#if 0
+#warning MOD TX TIME
+        double max_rx = 0;
+        for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+            if(it->second.RX_time > max_rx) max_rx = it->second.RX_time;
+        std::map<int, Gnss_Synchro> gnss_synchro_map2;
+        for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+        {
+            Gnss_Synchro gns_syn = it->second;
+            gns_syn.RX_time = max_rx;
+            gnss_synchro_map2.insert(std::pair<int, Gnss_Synchro>(it->first, gns_syn));
+        }
+        gnss_synchro_map = gnss_synchro_map2;
+#endif
 
         if (WRITE_OBS_CSV)
         {
