@@ -917,6 +917,16 @@ int main(int argc, char** argv)
                 write_obs_csv(fcsv_ch[it->first], &it->second, prev_csv_tm + it->first, prev_csv_carr + it->first);
         }
 
+
+        for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+        {
+            auto fnd = d_ls_pvt->gps_ephemeris_map.find(it->second.PRN);
+            if (fnd == d_ls_pvt->gps_ephemeris_map.end())
+            {
+                std::cout << "*** MISSING EPH FOR PRN " << it->second.PRN << std::endl;
+                //continue;
+            }
+
         }
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
