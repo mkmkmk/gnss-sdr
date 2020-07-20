@@ -760,7 +760,7 @@ int main(int argc, char** argv)
 
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]\n");
 
     int64_t epoch_counter = 0;
     int time_epoch = 0;
@@ -986,7 +986,21 @@ int main(int argc, char** argv)
             sum_num++;
         }
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop());
+        double max_abs_resp = 0;
+        double max_abs_resc = 0;
+        for (int i = 0; i < MAXSAT; i++)
+        {
+            if (!d_ls_pvt->pvt_ssat[i].vs)
+                continue;
+            double resp = d_ls_pvt->pvt_ssat[i].resp[0];
+            if (fabs(resp) > fabs(max_abs_resp))
+                max_abs_resp = resp;
+            double resc = d_ls_pvt->pvt_ssat[i].resc[0];
+            if (fabs(resc) > fabs(max_abs_resc))
+                max_abs_resc = resc;
+        }
+
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt, false);
