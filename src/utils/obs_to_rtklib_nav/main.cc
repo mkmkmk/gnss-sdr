@@ -804,6 +804,15 @@ int main(int argc, char** argv)
     double prev_csv_tm[obs_n_channels];
 
 
+    std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
+    std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
+    std::shared_ptr<MovingMean<50>> rx_smth[obs_n_channels];
+    for (int i = 0; i < obs_n_channels; ++i)
+    {
+        carr_smth[i] = std::make_shared<MovingMean<50>>();
+        rng_smth[i] = std::make_shared<MovingMean<50>>();
+        rx_smth[i] = std::make_shared<MovingMean<50>>();
+    }
 
     if (WRITE_OBS_CSV)
         start_obs_csv(obs_filename.c_str(), fcsv_ch, obs_n_channels);
@@ -856,11 +865,14 @@ int main(int argc, char** argv)
             gns_syn.PRN = observables.PRN[n];
 #else
 #warning DBG MIN MEAS
+            //gns_syn.RX_time = rx_smth[n]->next(observables.RX_time[n]);
             gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = 0; // observables.Carrier_Doppler_hz[n];
             gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
             //gns_syn.Carrier_phase_rads = ((int)observables.Acc_carrier_phase_hz[n]) * GPS_TWO_PI;
+            //gns_syn.Carrier_phase_rads = carr_smth[n]->next(observables.Acc_carrier_phase_hz[n] * PI_2);
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
+            //gns_syn.Pseudorange_m = rng_smth[n]->next(observables.Pseudorange_m[n]);
             gns_syn.PRN = observables.PRN[n];
 
 #endif
