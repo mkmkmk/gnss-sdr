@@ -871,6 +871,13 @@ int main(int argc, char** argv)
                 gns_syn.RX_time += 0.042;
             #endif
 
+
+            if (0 && gns_syn.PRN == 1)
+            {
+                 std::cout << "*** dbg skip PRN " << std::endl;
+                 continue;
+            }
+
             //#warning TEMP DBG IF
             //if (gns_syn.PRN != 20)
             gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
