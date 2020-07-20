@@ -443,8 +443,8 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
     std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
     if (supl_client.load_ephemeris_xml(eph_xml_filename) == true)
     {
-        std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
-        for (gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
+        //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
+        for (auto gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
         {
             //int prn = gps_eph_iter->first;
             int prn = gps_eph_iter->second.i_satellite_PRN;
