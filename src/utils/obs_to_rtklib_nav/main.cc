@@ -942,6 +942,14 @@ int main(int argc, char** argv)
         {
             d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
             last_eph_update_tm = rx_time;
+            if (d_ls_pvt->gps_ephemeris_map.size() == 0)
+            {
+                std::cout << "NO EPHEMERIS FOUND!" << std::endl;
+                break;
+            }
+        }
+
+
 #if 0
 #warning MOD TX TIME
         double max_rx = 0;
