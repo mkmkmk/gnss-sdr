@@ -1030,18 +1030,20 @@ int main(int argc, char** argv)
         // p_time += boost::posix_time::microseconds(round(rtklib_utc_time.sec * 1e6));
         // std::cout << TEXT_MAGENTA << "Observable RX time (GPST) " << boost::posix_time::to_simple_string(p_time) << TEXT_RESET << std::endl;
 
-        std::cout << "RTKLIB Position at RX TOW = " << rx_time
-                  << " in ECEF (X,Y,Z,t[meters]) = " << std::fixed << std::setprecision(16)
+        std::cout << "RX TOW = " << rx_time << std::endl;
+
+        std::cout << "ECEF[m] = " << std::fixed << std::setprecision(16)
                   << d_ls_pvt->pvt_sol.rr[0] << ","
                   << d_ls_pvt->pvt_sol.rr[1] << ","
                   << d_ls_pvt->pvt_sol.rr[2] << std::endl;
         /* std::cout << "Dilution of Precision at " << boost::posix_time::to_simple_string(d_ls_pvt->get_position_UTC_time())
                  << " UTC using "<< d_ls_pvt->get_num_valid_observations() <<" observations is HDOP = " << d_ls_pvt->get_hdop() << " VDOP = "
-                 << d_ls_pvt->get_vdop()
-                 << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
+                 << d_ls_pvt->get_vdop() */
+        std::cout << "GDOP = " << d_ls_pvt->get_gdop() << std::endl;
+        printf("num valid obs = %d \n", d_ls_pvt->get_num_valid_observations());
 
         double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
-        std::cout << "Haversine Great Circle error LLH distance: " << error_LLH_m << " [meters]" << std::endl;
+        std::cout << "2D error [m] : " << error_LLH_m << std::endl;
 
         arma::vec measured_r_eb_e = {d_ls_pvt->pvt_sol.rr[0], d_ls_pvt->pvt_sol.rr[1], d_ls_pvt->pvt_sol.rr[2]};
 
@@ -1049,16 +1051,16 @@ int main(int argc, char** argv)
 
         double error_3d_m = arma::norm(error_r_eb_e, 2);
 
-        std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
+        std::cout << "3D error [m] : " << error_3d_m << std::endl;
 
         if (error_3d_m >= error_bound) //200.0)
         {
-            std::cout << "3D positioning error BIG!" << std::endl;
+            std::cout << "3D error BIG!" << std::endl;
             big_err_num++;
         }
         else
         {
-            std::cout << "3D positioning error OK!" << std::endl;
+            std::cout << "3D error OK!" << std::endl;
             sq_sum_ecef = sq_sum_ecef + arma::pow(error_r_eb_e, 2);
             sum_meas_pos_ecef = sum_meas_pos_ecef + measured_r_eb_e;
             sum_num++;
