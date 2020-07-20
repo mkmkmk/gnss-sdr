@@ -41,6 +41,8 @@
 
 #include "gpx_printer.h"
 
+#include <stdio.h>
+
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/map.hpp>
@@ -475,6 +477,78 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
 }
 
 
+
+void save_ephemeris_csv(std::string eph_xml_filename)
+{
+    
+    Gnss_Sdr_Supl_Client supl_client;
+    if (supl_client.load_ephemeris_xml(eph_xml_filename) == false)
+    {
+        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
+        return; 
+    }    
+
+    FILE *fcsv = fopen((eph_xml_filename + ".csv").c_str(), "w");
+    if (fcsv == NULL)
+    {
+        printf("WRITE FILE OPEN FAILED \n");
+        return;
+    }
+    fprintf(fcsv, "i_satellite_PRN, d_TOW, d_IODE_SF2, d_IODE_SF3, d_Crs, d_Delta_n, d_M_0, d_Cuc, d_e_eccentricity, d_Cus, d_sqrt_A, d_Toe, d_Toc, d_Cic-, d_OMEGA0, d_Cis, d_i_0, d_Crc, d_OMEGA, d_OMEGA_DOT-, d_IDOT, i_code_on_L2, i_GPS_week, b_L2_P_data_flag, i_SV_accuracy, i_SV_health, d_TGD, d_IODC, i_AODO, b_fit_interval_flag, d_spare1, d_spare2, d_A_f0-, d_A_f1, d_A_f2, b_integrity_status_flag, b_alert_flag, b_antispoofing_flag\n");
+
+    std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
+    for (gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
+    {
+        Gps_Ephemeris e = gps_eph_iter->second;
+        fprintf(
+            fcsv, 
+            "%d, %d, %d, %d, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %d, %d, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %d, %d, %d, %d, %d, %30.20g, %d, %d, %d, %30.20g, %30.20g, %30.20g, %30.20g, %30.20g, %d, %d, %d\n", 
+            e.i_satellite_PRN,
+	    e.d_TOW,
+	    e.d_IODE_SF2,
+	    e.d_IODE_SF3,
+	    e.d_Crs,
+	    e.d_Delta_n,
+	    e.d_M_0,
+	    e.d_Cuc,
+	    e.d_e_eccentricity,
+	    e.d_Cus,
+	    e.d_sqrt_A,
+	    e.d_Toe,
+	    e.d_Toc,
+	    e.d_Cic,
+	    e.d_OMEGA0,
+	    e.d_Cis,
+	    e.d_i_0,
+	    e.d_Crc,
+	    e.d_OMEGA,
+	    e.d_OMEGA_DOT,
+	    e.d_IDOT,
+	    e.i_code_on_L2,
+	    e.i_GPS_week,
+	    e.b_L2_P_data_flag,
+	    e.i_SV_accuracy,
+	    e.i_SV_health,
+	    e.d_TGD,
+	    e.d_IODC,
+	    e.i_AODO,
+	    e.b_fit_interval_flag,
+	    e.d_spare1,
+	    e.d_spare2,
+	    e.d_A_f0,
+	    e.d_A_f1,
+	    e.d_A_f2,
+	    e.b_integrity_status_flag,
+	    e.b_alert_flag,
+	    e.b_antispoofing_flag
+            
+            );
+
+    }
+    
+    fclose(fcsv);
+}
+
 int main(int argc, char** argv)
 {
 
@@ -515,6 +589,8 @@ int main(int argc, char** argv)
 #include "conf-inc-obso.c"
 #endif
     
+    save_ephemeris_csv(eph_xml_filename);
+
     std::string dump_filename = ".rtklib_solver_dump.dat";
     bool flag_dump_to_file = false;
     bool save_to_mat = false;
