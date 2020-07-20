@@ -1094,10 +1094,6 @@ int main(int argc, char** argv)
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt, false);
 
-        if (d_ls_pvt->get_num_valid_observations() == 0)
-        {
-            printf("d_ls_pvt->get_num_valid_observations() == 0 ??? !!! \n");
-        }
 
     }
 
