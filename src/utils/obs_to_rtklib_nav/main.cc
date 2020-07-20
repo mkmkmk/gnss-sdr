@@ -848,13 +848,6 @@ int main(int argc, char** argv)
             gns_syn.Flag_valid_word = valid;
             gns_syn.RX_time = observables.RX_time[n];
 
-            #if 0
-            #warning dbg
-            if (abs(gns_syn.RX_time - 557803) < 0.050)
-                gns_syn.RX_time += 0.042;
-            #endif
-
-
 #if 1
             gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
@@ -871,6 +864,13 @@ int main(int argc, char** argv)
             gns_syn.PRN = observables.PRN[n];
 
 #endif
+
+            #if 0
+            #warning dbg
+            if (abs(gns_syn.RX_time - 557803) < 0.050)
+                gns_syn.RX_time += 0.042;
+            #endif
+
             //#warning TEMP DBG IF
             //if (gns_syn.PRN != 20)
             gnss_synchro_map.insert(std::pair<int, Gnss_Synchro>(n, gns_syn));
