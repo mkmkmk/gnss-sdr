@@ -928,6 +928,18 @@ int main(int argc, char** argv)
             }
 
         }
+        for (auto it = d_ls_pvt->gps_ephemeris_map.cbegin(); it != d_ls_pvt->gps_ephemeris_map.cend(); it++)
+        {
+            double toe = it->second.d_Toe;
+            if (rx_time - toe > 7200)
+            {
+                std::cout << "*** OLD Ephemeris for GPS SV "
+                          << it->second.i_satellite_PRN << " TOW: "
+                          << rx_time << " TOE: " << toe
+                          << " DIFF: " << (rx_time - toe) << " s "
+                          << std::endl;
+            }
+        }
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
         {
