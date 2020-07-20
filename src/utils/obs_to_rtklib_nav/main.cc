@@ -52,6 +52,8 @@
 
 #define LOG(severity) std::cout
 
+#define WRITE_OBS_CSV (1)
+
 
 //TODO Single vs PPP
 //#define USE_PPP (1)
@@ -549,6 +551,72 @@ void save_ephemeris_csv(std::string eph_xml_filename)
     fclose(fcsv);
 }
 
+
+void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr)
+{
+    double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT;// - .068;
+    double carr = o->Carrier_phase_rads / PI_2;
+
+    double tm_dt = o->RX_time - *prev_tm;
+    double freq = 0;
+    if(tm_dt >= 0.001)
+        freq = (carr - *prev_carr) / (tm_dt);
+    else
+        tm_dt = 0.001;
+
+    fprintf(
+            fcsv,
+            "%.15g; %.12g; %.20g; %d; %g; %.15g; %g\n",
+            o->RX_time,
+            o->Pseudorange_m,
+            carr,
+            o->PRN,
+            o->Carrier_Doppler_hz,
+            ttime,
+            freq
+    );
+    *prev_carr = carr;
+    *prev_tm = o->RX_time;
+}
+
+
+int start_obs_csv(const char *readPath, FILE **fcsv_ch, int chan_num)
+{
+    char strBuf[1000];
+
+    printf("Out files:\n");
+    for (int i = 0; i < chan_num; ++i)
+    {
+        sprintf(strBuf, "%s_ch%d.csv", readPath, i);
+        printf("  %s\n", strBuf);
+
+        //rx_times[i] = -1;
+        //rx_ofs[i] = 0;
+        fcsv_ch[i] = fopen(strBuf, "wb");
+        if (fcsv_ch[i] == NULL)
+        {
+            printf("write file open error\n");
+            return 1;
+        }
+        // fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; valid_ch%d\n", i, i, i, i);
+        fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; doppler; t-time; d/dt(carr)\n", i, i, i);
+
+    }
+    printf("--\n");
+    return 0;
+}
+
+
+void close_obs_csv(FILE **fcsv_ch, int chan_num)
+{
+    for (int i = 0; i < chan_num; ++i)
+    {
+         fclose(fcsv_ch[i]);
+         fcsv_ch[i] = 0;
+    }
+}
+
+
 int main(int argc, char** argv)
 {
 
@@ -699,6 +767,14 @@ int main(int argc, char** argv)
     double prev_time = -1;
     //int chan = 0;
 
+    FILE *fcsv_ch[obs_n_channels];
+    double prev_csv_carr[obs_n_channels];
+    double prev_csv_tm[obs_n_channels];
+
+
+
+    if (WRITE_OBS_CSV)
+        start_obs_csv(obs_filename.c_str(), fcsv_ch, obs_n_channels);
 
     int last_eph_update_tm = -1;
 
@@ -834,6 +910,13 @@ int main(int argc, char** argv)
         {
             d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
             last_eph_update_tm = rx_time;
+
+        if (WRITE_OBS_CSV)
+        {
+            for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+                write_obs_csv(fcsv_ch[it->first], &it->second, prev_csv_tm + it->first, prev_csv_carr + it->first);
+        }
+
         }
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
@@ -939,6 +1022,11 @@ int main(int argc, char** argv)
 
     fclose(diffCsv);
     diffCsv = 0;
+
+    if (WRITE_OBS_CSV)
+    {
+        close_obs_csv(fcsv_ch, obs_n_channels);
+    }
 
 	return 0;
 }
