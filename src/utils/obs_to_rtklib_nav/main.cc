@@ -903,7 +903,8 @@ int main(int argc, char** argv)
 
             if (valid)
             {
-                if (anyValid && abs(rx_time - gns_syn.RX_time) > 1e-9)
+                //#warning temp 0
+                if (1 && anyValid && abs(rx_time - gns_syn.RX_time) > 1e-9)
                 {
                     std::cout << std::endl << "*** ERROR : time change in one row/measure !!" << std::endl << std::endl;
                     error = true;
