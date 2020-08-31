@@ -453,6 +453,8 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
             gps_dual_band = true;
         }
 
+    // band_iter --> MK MOD
+    for (int band_iter = 0; band_iter < 2; ++band_iter)
     for (gnss_observables_iter = gnss_observables_map.cbegin();
          gnss_observables_iter != gnss_observables_map.cend();
          ++gnss_observables_iter)  // CHECK INCONSISTENCY when combining GLONASS + other system
@@ -463,19 +465,41 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                     {
                         const std::string sig_(gnss_observables_iter->second.Signal);
                         // Galileo E1
-                        if (sig_ == "1B")
+                        if (sig_ == "1B" && band_iter == 0)
                             {
                                 // 1 Gal - find the ephemeris for the current GALILEO SV observation. The SV PRN ID is the map key
-                                galileo_ephemeris_iter = galileo_ephemeris_map.find(gnss_observables_iter->second.PRN);
-                                if (galileo_ephemeris_iter != galileo_ephemeris_map.cend())
+                                //galileo_ephemeris_iter = galileo_ephemeris_map.find(gnss_observables_iter->second.PRN);
+
+                                if (!MK_MOD_GPS_AS_GALILEO)
+                                    galileo_ephemeris_iter = galileo_ephemeris_map.find(gnss_observables_iter->second.PRN);
+                                else
+                                    gps_ephemeris_iter = gps_ephemeris_map.find(gnss_observables_iter->second.PRN);
+
+                                int eph_fnd = !MK_MOD_GPS_AS_GALILEO ?
+                                              galileo_ephemeris_iter != galileo_ephemeris_map.cend() :
+                                              gps_ephemeris_iter != gps_ephemeris_map.cend();
+
+                                //if (galileo_ephemeris_iter != galileo_ephemeris_map.cend())
+                                if (eph_fnd)
                                     {
                                         // convert ephemeris from GNSS-SDR class to RTKLIB structure
-                                        eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                        //eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                        if (!MK_MOD_GPS_AS_GALILEO)
+                                            eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                        else
+                                        {
+                                            eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second);
+                                            eph_data[valid_obs].sat += NSATGPS + NSATGLO;
+                                        }
+
                                         // convert observation from GNSS-SDR class to RTKLIB structure
                                         obsd_t newobs{};
                                         obs_data[valid_obs + glo_valid_obs] = insert_obs_to_rtklib(newobs,
                                             gnss_observables_iter->second,
-                                            galileo_ephemeris_iter->second.WN_5,
+                                            //galileo_ephemeris_iter->second.WN_5,
+                                            !MK_MOD_GPS_AS_GALILEO ?
+                                                galileo_ephemeris_iter->second.WN_5:
+                                                gps_ephemeris_iter->second.i_GPS_week,
                                             0);
                                         valid_obs++;
                                     }
@@ -486,11 +510,20 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                             }
 
                         // Galileo E5
-                        if (sig_ == "5X")
+                        if (sig_ == "5X" && band_iter != 0)
                             {
                                 // 1 Gal - find the ephemeris for the current GALILEO SV observation. The SV PRN ID is the map key
-                                galileo_ephemeris_iter = galileo_ephemeris_map.find(gnss_observables_iter->second.PRN);
-                                if (galileo_ephemeris_iter != galileo_ephemeris_map.cend())
+                                if (!MK_MOD_GPS_AS_GALILEO)
+                                    galileo_ephemeris_iter = galileo_ephemeris_map.find(gnss_observables_iter->second.PRN);
+                                else
+                                    gps_ephemeris_iter = gps_ephemeris_map.find(gnss_observables_iter->second.PRN);
+
+                                int eph_fnd = !MK_MOD_GPS_AS_GALILEO ?
+                                        galileo_ephemeris_iter != galileo_ephemeris_map.cend() :
+                                        gps_ephemeris_iter != gps_ephemeris_map.cend();
+
+                                //if (galileo_ephemeris_iter != galileo_ephemeris_map.cend())
+                                if (eph_fnd)
                                     {
                                         bool found_E1_obs = false;
                                         for (int i = 0; i < valid_obs; i++)
@@ -499,7 +532,9 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                                     {
                                                         obs_data[i + glo_valid_obs] = insert_obs_to_rtklib(obs_data[i + glo_valid_obs],
                                                             gnss_observables_iter->second,
-                                                            galileo_ephemeris_iter->second.WN_5,
+                                                            !MK_MOD_GPS_AS_GALILEO ?
+                                                                    galileo_ephemeris_iter->second.WN_5:
+                                                                    gps_ephemeris_iter->second.i_GPS_week,
                                                             2);  // Band 3 (L5/E5)
                                                         found_E1_obs = true;
                                                         break;
@@ -509,7 +544,15 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                             {
                                                 // insert Galileo E5 obs as new obs and also insert its ephemeris
                                                 // convert ephemeris from GNSS-SDR class to RTKLIB structure
-                                                eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+
+                                                if (!MK_MOD_GPS_AS_GALILEO)
+                                                    eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                                else
+                                                {
+                                                    eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second);
+                                                    eph_data[valid_obs].sat += NSATGPS + NSATGLO;
+                                                }
+
                                                 // convert observation from GNSS-SDR class to RTKLIB structure
                                                 const auto default_code_ = static_cast<unsigned char>(CODE_NONE);
                                                 obsd_t newobs = {{0, 0}, '0', '0', {}, {},
@@ -517,7 +560,10 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                                     {}, {0.0, 0.0, 0.0}, {}};
                                                 obs_data[valid_obs + glo_valid_obs] = insert_obs_to_rtklib(newobs,
                                                     gnss_observables_iter->second,
-                                                    galileo_ephemeris_iter->second.WN_5,
+                                                    //galileo_ephemeris_iter->second.WN_5,
+                                                    !MK_MOD_GPS_AS_GALILEO ?
+                                                        galileo_ephemeris_iter->second.WN_5:
+                                                        gps_ephemeris_iter->second.i_GPS_week,
                                                     2);  // Band 3 (L5/E5)
                                                 valid_obs++;
                                             }
@@ -534,7 +580,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                         // GPS L1
                         // 1 GPS - find the ephemeris for the current GPS SV observation. The SV PRN ID is the map key
                         const std::string sig_(gnss_observables_iter->second.Signal);
-                        if (sig_ == "1C")
+                        if (sig_ == "1C" && band_iter == 0)
                             {
                                 gps_ephemeris_iter = gps_ephemeris_map.find(gnss_observables_iter->second.PRN);
                                 if (gps_ephemeris_iter != gps_ephemeris_map.cend())
@@ -556,7 +602,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                     }
                             }
                         // GPS L2 (todo: solve NAV/CNAV clash)
-                        if ((sig_ == "2S") and (gps_dual_band == false))
+                        if (sig_ == "2S" && band_iter != 0 )//and (gps_dual_band == false))
                             {
                                 gps_cnav_ephemeris_iter = gps_cnav_ephemeris_map.find(gnss_observables_iter->second.PRN);
                                 if (gps_cnav_ephemeris_iter != gps_cnav_ephemeris_map.cend())
@@ -605,7 +651,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                     }
                             }
                         // GPS L5
-                        if (sig_ == "L5")
+                        if (sig_ == "L5" && band_iter != 0)
                             {
                                 gps_cnav_ephemeris_iter = gps_cnav_ephemeris_map.find(gnss_observables_iter->second.PRN);
                                 if (gps_cnav_ephemeris_iter != gps_cnav_ephemeris_map.cend())

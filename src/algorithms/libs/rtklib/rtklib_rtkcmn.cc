@@ -364,6 +364,10 @@ int satsys(int sat, int *prn)
         {
             *prn = sat;
         }
+
+    if (MK_MOD_GPS_AS_GALILEO)
+        return SYS_GPS;
+
     return sys;
 }
 

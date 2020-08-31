@@ -139,6 +139,10 @@ double prange(const obsd_t *obs, const nav_t *nav, const double *azel,
     int i = 0;
     int j = 1;
     int sys = satsys(obs->sat, nullptr);
+
+    if (MK_MOD_GPS_AS_GALILEO)
+        sys = SYS_GAL;
+
     *var = 0.0;
 
     if (sys == SYS_NONE)

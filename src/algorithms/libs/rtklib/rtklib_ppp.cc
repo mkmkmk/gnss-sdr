@@ -962,8 +962,14 @@ int ifmeas(const obsd_t *obs, const nav_t *nav, const double *azel,
 
     trace(4, "ifmeas  :\n");
 
+    int sys = satsys(obs->sat, nullptr);
+
+    if (MK_MOD_GPS_AS_GALILEO)
+        sys = SYS_GAL;
+
     /* L1-L2 for GPS/GLO/QZS, L1-L5 for GAL/SBS */
-    if (NFREQ >= 3 && (satsys(obs->sat, nullptr) & (SYS_GAL | SYS_SBS)))
+    //if (NFREQ >= 3 && (satsys(obs->sat, nullptr) & (SYS_GAL | SYS_SBS)))
+    if (NFREQ >= 3 && (sys & (SYS_GAL | SYS_SBS)))
         {
             j = 2;
         }

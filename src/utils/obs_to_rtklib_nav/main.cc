@@ -851,10 +851,56 @@ int main(int argc, char** argv)
             //observables.Acc_carrier_phase_hz[n] /= 256;
 
             Gnss_Synchro gns_syn;
-            gns_syn.System = 'G';
-            gns_syn.Signal[0] = '1';
-            gns_syn.Signal[1] = 'C';
+
+            if (!MK_MOD_GPS_AS_GALILEO)
+            {
+                gns_syn.System = 'G';
+                gns_syn.Signal[0] = '1';
+                gns_syn.Signal[1] = 'C';
+            }
+            else
+            {
+                gns_syn.System = 'E';
+                gns_syn.Signal[0] = '1';
+                gns_syn.Signal[1] = 'B';
+            }
+
             gns_syn.Flag_valid_word = valid;
+
+            int prn = observables.PRN[n];
+
+            #if 0
+                #warning TEMP tylko pasmo 2
+                if ((prn & 0x80) == 0)
+                    continue;
+            #endif
+
+            if (prn & 0x80)
+            {
+                //#warning TEMP tylko pasmo 1
+                //continue;
+
+                prn -= 0x80;
+                // 2S
+                //gns_syn.Signal[0] = '2';
+                //gns_syn.Signal[1] = 'S';
+
+                if (!MK_MOD_GPS_AS_GALILEO)
+                {
+                    gns_syn.Signal[0] = 'L';
+                    gns_syn.Signal[1] = '5';
+                }
+                else
+                {
+                    gns_syn.Signal[0] = '5';
+                    gns_syn.Signal[1] = 'X';
+                }
+
+                //std::cout << "DUAL SEC OBS TEMP SKIP  " << std::endl;
+                //continue;
+
+            }
+            gns_syn.PRN = prn;
 
 #if 0
             gns_syn.RX_time = observables.RX_time[n];

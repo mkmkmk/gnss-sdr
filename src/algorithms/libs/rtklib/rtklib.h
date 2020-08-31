@@ -33,6 +33,10 @@
 #ifndef GNSS_SDR_RTKLIB_H
 #define GNSS_SDR_RTKLIB_H
 
+// MK MOD - udawanie że mamy pomiary Galileo
+#define MK_MOD_GPS_AS_GALILEO (1)
+
+
 #include "MATH_CONSTANTS.h"
 #include "gnss_frequencies.h"
 #include "gnss_obs_codes.h"
