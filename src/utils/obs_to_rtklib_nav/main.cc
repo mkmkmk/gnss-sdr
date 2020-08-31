@@ -855,25 +855,48 @@ int main(int argc, char** argv)
             gns_syn.Signal[0] = '1';
             gns_syn.Signal[1] = 'C';
             gns_syn.Flag_valid_word = valid;
-            gns_syn.RX_time = observables.RX_time[n];
 
-#if 1
+#if 0
+            gns_syn.RX_time = observables.RX_time[n];
             gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
-            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
+//#warning minus phase!
+            gns_syn.Carrier_phase_rads = +observables.Acc_carrier_phase_hz[n] * PI_2;
+            // std::cout << "ph = " << observables.Acc_carrier_phase_hz[n] << std::endl;
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
-            gns_syn.PRN = observables.PRN[n];
 #else
 #warning DBG MIN MEAS
+            gns_syn.RX_time = observables.RX_time[n];
             //gns_syn.RX_time = rx_smth[n]->next(observables.RX_time[n]);
+
+            //gns_syn.RX_time = observables.RX_time[n] + 0.068;
+
+            //gns_syn.RX_time = (int)(observables.RX_time[n]*1000) / 1000.0;
+            //gns_syn.RX_time = (int)(observables.RX_time[n]*50) / 50.0;
+            //printf("RX_time=%.15g\n", gns_syn.RX_time);
+
+            //gns_syn.RX_time =
+            //        (int)(observables.RX_time[n]*1000) / 1000.0 +
+            //        observables.Pseudorange_m[n] / SPEED_OF_LIGHT;
+
             gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = 0; // observables.Carrier_Doppler_hz[n];
-            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
-            //gns_syn.Carrier_phase_rads = ((int)observables.Acc_carrier_phase_hz[n]) * GPS_TWO_PI;
+
+            //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
+            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * PI_2;
             //gns_syn.Carrier_phase_rads = carr_smth[n]->next(observables.Acc_carrier_phase_hz[n] * PI_2);
+
+            //gns_syn.Carrier_phase_rads = -observables.Acc_carrier_phase_hz[n] * PI_2;
+            //gns_syn.Carrier_phase_rads = ((int)observables.Acc_carrier_phase_hz[n]-1107) * GPS_TWO_PI;
+            //gns_syn.Carrier_phase_rads = ((int)(observables.Acc_carrier_phase_hz[n] / 300)) * GPS_TWO_PI * 300.0;
+            //gns_syn.Carrier_phase_rads = ((int)(-observables.Acc_carrier_phase_hz[n] / 1)) * PI_2 * 1;
+            //gns_syn.Carrier_phase_rads = 0;
+
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
             //gns_syn.Pseudorange_m = rng_smth[n]->next(observables.Pseudorange_m[n]);
-            gns_syn.PRN = observables.PRN[n];
+
+            //gns_syn.Pseudorange_m = +0.068 * SPEED_OF_LIGHT + observables.Pseudorange_m[n];
+            //gns_syn.Pseudorange_m = (int)(observables.Pseudorange_m[n] * 1000) / 1000.0;
 
 #endif
 
