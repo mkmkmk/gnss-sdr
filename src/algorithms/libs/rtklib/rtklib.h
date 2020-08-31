@@ -273,7 +273,17 @@ const int MAXERRMSG = 4096;  //!<    max length of error/warning message
 const int IONOOPT_OFF = 0;   //!<    ionosphere option: correction off
 const int IONOOPT_BRDC = 1;  //!<    ionosphere option: broadcast model
 const int IONOOPT_SBAS = 2;  //!<    ionosphere option: SBAS model
+
+#if 1
 const int IONOOPT_IFLC = 3;  //!<    ionosphere option: L1/L2 or L1/L5 iono-free LC
+#else
+static inline int IONOOPT_IFLC_FN()
+{
+    return 3;
+}
+#define IONOOPT_IFLC (IONOOPT_IFLC_FN())
+#endif
+
 const int IONOOPT_EST = 4;   //!<    ionosphere option: estimation
 const int IONOOPT_TEC = 5;   //!<    ionosphere option: IONEX TEC model
 const int IONOOPT_QZS = 6;   //!<    ionosphere option: QZSS broadcast model
