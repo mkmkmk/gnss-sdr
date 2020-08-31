@@ -1020,8 +1020,11 @@ int pntpos(const obsd_t *obs, int n, const nav_t *nav,
 #if 0
             opt_.sateph  = EPHOPT_BRDC;
 #endif
+#warning MK MOD: bez włączania na siłę poprawek IONO
+#if 0
             opt_.ionoopt = IONOOPT_BRDC;
             opt_.tropopt = TROPOPT_SAAS;
+#endif
         }
     /* satellite positions, velocities and clocks */
     satposs(sol->time, obs, n, nav, opt_.sateph, rs, dts, var, svh);
