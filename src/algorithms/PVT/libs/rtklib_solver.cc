@@ -647,7 +647,21 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                     }
                                 else  // the ephemeris are not available for this SV
                                     {
-                                        DLOG(INFO) << "No ephemeris data for SV " << gnss_observables_iter->second.PRN;
+                                        // DLOG(INFO) << "No ephemeris data for SV " << gnss_observables_iter->second.PRN;
+
+                                        // MKMOD: dodaj do pomiaru "C1" bez zamiany efemeryd
+                                        for (int i = 0; i < valid_obs; i++)
+                                        {
+                                            if (eph_data[i].sat == static_cast<int>(gnss_observables_iter->second.PRN))
+                                            {
+                                                obs_data[i + glo_valid_obs] = insert_obs_to_rtklib(
+                                                        obs_data[i + glo_valid_obs],
+                                                        gnss_observables_iter->second,
+                                                        gps_ephemeris_iter->second.i_GPS_week,
+                                                        1); // Band 2 (L2)
+                                                break;
+                                            }
+                                        }
                                     }
                             }
                         // GPS L5
@@ -694,7 +708,20 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                     }
                                 else  // the ephemeris are not available for this SV
                                     {
-                                        DLOG(INFO) << "No ephemeris data for SV " << gnss_observables_iter->second.PRN;
+                                        // DLOG(INFO) << "No ephemeris data for SV " << gnss_observables_iter->second.PRN;
+                                        // MKMOD: dodaj do pomiaru "C1" bez zamiany efemeryd
+                                        for (int i = 0; i < valid_obs; i++)
+                                        {
+                                            if (eph_data[i].sat == static_cast<int>(gnss_observables_iter->second.PRN))
+                                            {
+                                                obs_data[i + glo_valid_obs] = insert_obs_to_rtklib(
+                                                        obs_data[i + glo_valid_obs],
+                                                        gnss_observables_iter->second,
+                                                        gps_ephemeris_iter->second.i_GPS_week,
+                                                        2);  // Band 3 (L5)
+                                                break;
+                                            }
+                                        }
                                     }
                             }
                         break;
