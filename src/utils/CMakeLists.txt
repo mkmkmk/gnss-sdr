@@ -16,4 +16,5 @@ endif()
 
 
 add_subdirectory(obs_to_rtklib_nav)
+add_subdirectory(obs2rinex)
 
