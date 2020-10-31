@@ -241,12 +241,12 @@ int main(int argc, char** argv)
 
     int rinex_hdr_wr = 0;
 
-    Galileo_Ephemeris rinex_eph_gal = Galileo_Ephemeris();
-    Gps_Ephemeris rinex_eph_gps = Gps_Ephemeris();
-    Gps_CNAV_Ephemeris rinex_eph_gps_cnav = Gps_CNAV_Ephemeris();
-    rinex_eph_gps_cnav.i_GPS_week = week;
-    rinex_eph_gal.WN_5 = week;
-    rinex_eph_gps.i_GPS_week = week;
+    Galileo_Ephemeris gal_eph = Galileo_Ephemeris();
+    Gps_Ephemeris gps_eph = Gps_Ephemeris();
+    Gps_CNAV_Ephemeris gps_cnav_eph = Gps_CNAV_Ephemeris();
+    gps_cnav_eph.i_GPS_week = week;
+    gal_eph.WN_5 = week;
+    gps_eph.i_GPS_week = week;
     //double first_rx_time = -1;
     //if (!isGalileo)
     ///    rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gal, 0.0);
@@ -484,26 +484,26 @@ int main(int argc, char** argv)
                 //assert(first_rx_time > 0);
                 rinex_hdr_wr = 1;
                 if (!DUAL_RINEX)
-                    rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gps, rx_time);
+                    rinex->rinex_obs_header(rinex->obsFile, gps_eph, rx_time);
                 else
-                    rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gps, rinex_eph_gps_cnav, rx_time, "1C L5");
+                    rinex->rinex_obs_header(rinex->obsFile, gps_eph, gps_cnav_eph, rx_time, "1C L5");
 
             }
             else
-                rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gal, rx_time);
+                rinex->rinex_obs_header(rinex->obsFile, gal_eph, rx_time);
         }
 
         if (!isGalileo)
         {
             //rinex_eph_gps_cnav
             if (!DUAL_RINEX)
-                rinex->log_rinex_obs(rinex->obsFile, rinex_eph_gps, rx_time, gnss_synchro_map);
+                rinex->log_rinex_obs(rinex->obsFile, gps_eph, rx_time, gnss_synchro_map);
             else
-                rinex->log_rinex_obs(rinex->obsFile, rinex_eph_gps, rinex_eph_gps_cnav, rx_time, gnss_synchro_map);
+                rinex->log_rinex_obs(rinex->obsFile, gps_eph, gps_cnav_eph, rx_time, gnss_synchro_map);
 
         }
         else
-            rinex->log_rinex_obs(rinex->obsFile, rinex_eph_gal, rx_time, gnss_synchro_map);
+            rinex->log_rinex_obs(rinex->obsFile, gal_eph, rx_time, gnss_synchro_map);
 
 
         std::streamsize ss = std::cout.precision();  // save current precision
