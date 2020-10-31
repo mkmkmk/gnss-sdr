@@ -488,7 +488,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                             eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
                                         else
                                         {
-                                            eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second);
+                                            eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second, this->is_pre_2009());
                                             eph_data[valid_obs].sat += NSATGPS + NSATGLO;
                                         }
 
@@ -549,7 +549,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                                     eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
                                                 else
                                                 {
-                                                    eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second);
+                                                    eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second, this->is_pre_2009());
                                                     eph_data[valid_obs].sat += NSATGPS + NSATGLO;
                                                 }
 

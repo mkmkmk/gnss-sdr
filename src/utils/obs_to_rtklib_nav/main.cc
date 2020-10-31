@@ -555,8 +555,8 @@ void save_ephemeris_csv(std::string eph_xml_filename)
 
 void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr)
 {
-    double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT;// - .068;
-    double carr = o->Carrier_phase_rads / PI_2;
+    double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT_M_S;// - .068;
+    double carr = o->Carrier_phase_rads / TWO_PI;
 
     double tm_dt = o->RX_time - *prev_tm;
     double freq = 0;
@@ -699,7 +699,9 @@ int main(int argc, char** argv)
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
     //                           save_to_mat, rtk));
 
-    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(obs_n_channels, dump_filename, flag_dump_to_file, save_to_mat, rtk);
+    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(rtk, obs_n_channels, dump_filename, flag_dump_to_file, save_to_mat);
+
+
 
     d_ls_pvt->set_averaging_depth(1);
 
@@ -907,7 +909,7 @@ int main(int argc, char** argv)
             gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
 //#warning minus phase!
-            gns_syn.Carrier_phase_rads = +observables.Acc_carrier_phase_hz[n] * PI_2;
+            gns_syn.Carrier_phase_rads = +observables.Acc_carrier_phase_hz[n] * TWO_PI;
             // std::cout << "ph = " << observables.Acc_carrier_phase_hz[n] << std::endl;
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
 #else
@@ -923,7 +925,7 @@ int main(int argc, char** argv)
 
             //gns_syn.RX_time =
             //        (int)(observables.RX_time[n]*1000) / 1000.0 +
-            //        observables.Pseudorange_m[n] / SPEED_OF_LIGHT;
+            //        observables.Pseudorange_m[n] / SPEESPEED_OF_LIGHT_M_S;
 
             gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = 0; // observables.Carrier_Doppler_hz[n];
@@ -939,6 +941,8 @@ int main(int argc, char** argv)
             //gns_syn.Carrier_phase_rads = 0;
 
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
+            gns_syn.interp_TOW_ms = gns_syn.RX_time - gns_syn.Pseudorange_m / SPEED_OF_LIGHT_M_S;
+
             //gns_syn.Pseudorange_m = rng_smth[n]->next(observables.Pseudorange_m[n]);
 
             //gns_syn.Pseudorange_m = +0.068 * SPEED_OF_LIGHT + observables.Pseudorange_m[n];
@@ -1174,7 +1178,7 @@ int main(int argc, char** argv)
         fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc);
 
         if (save_gpx)
-            gpx_dump.print_position(d_ls_pvt, false);
+            gpx_dump.print_position(d_ls_pvt.get(), false);
 
 
     }
