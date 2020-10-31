@@ -67,11 +67,6 @@
 #define DUAL_RINEX (0)
 
 
-//TODO Single vs PPP
-//#define USE_PPP (1)
-
-
-
 
 void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr)
 {
@@ -222,8 +217,8 @@ int main(int argc, char** argv)
 
 
     FILE *fcsv_ch[obs_n_channels];
-    //double prev_csv_carr[obs_n_channels];
-    //double prev_csv_tm[obs_n_channels];
+    double prev_csv_carr[obs_n_channels];
+    double prev_csv_tm[obs_n_channels];
 
 #if 0
     std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
@@ -475,6 +470,12 @@ int main(int argc, char** argv)
         //#warning dbg continue
         //if(1 && rx_time < 557850) //|| rx_time > 559700) // 567165) //566762)
         //    continue;
+
+        if (WRITE_OBS_CSV)
+        {
+            for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+                write_obs_csv(fcsv_ch[it->first], &it->second, prev_csv_tm + it->first, prev_csv_carr + it->first);
+        }
 
         if (!rinex_hdr_wr)
         {
