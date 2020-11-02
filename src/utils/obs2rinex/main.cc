@@ -254,16 +254,13 @@ int main(int argc, char** argv)
     gps_eph.i_GPS_week = week;
 
 
-    int prev_prn[obs_n_channels];
-    double prn_start_tm[obs_n_channels];
-    bool prev_lli[obs_n_channels];
     bool first_valid = true;
+    int prev_prn[obs_n_channels];
     double prev_carr[obs_n_channels];
 
     for (int ii = 0; ii < obs_n_channels; ++ii)
     {
         prev_prn[ii] = -1;
-        prev_lli[ii] = 0;
         prev_carr[ii] = 0;
     }
 
@@ -315,6 +312,7 @@ int main(int argc, char** argv)
             gns_syn.Flag_valid_word = valid;
 
             int prn = observables.PRN[n];
+
 
             #if 0
                 #warning TEMP tylko pasmo 2
@@ -406,32 +404,17 @@ int main(int argc, char** argv)
 
 #endif
 
-            // udawanie LLI po dodaniu nowej sat
+            // flagi LLI po dodaniu nowej sat lub carr rollover
             if (1 && valid)
             {
-                if (first_valid)
-                    prn_start_tm[n] = observables.RX_time[n] - 1000;
-                else if (prev_prn[n] != prn) // prev_prn[n] > 0 &&
-                    prn_start_tm[n] = observables.RX_time[n];
-
+                if (!first_valid && prev_prn[n] != prn)
+                    all_lli = true;
                 prev_prn[n] = prn;
-
-                //!first_valid &&
-#warning warunek z góry długie blokowanie sat, trzeba zrobić inteligentniej
-                //TODO eksperymenty ze zmniejszeniem tego czasu
-                bool lli = observables.RX_time[n] - prn_start_tm[n] < 20;
 
                 // LLI na całej epoce gdy następuje rollover fazy
                 if (fabs(prev_carr[n] - gns_syn.Carrier_phase_rads) > 1e8 * TWO_PI)
                     all_lli = true;
                 prev_carr[n] =  gns_syn.Carrier_phase_rads;
-
-                if (prev_lli[n] && !lli)
-                    all_lli = true;
-                prev_lli[n] = lli;
-
-                if (lli)
-                    gns_syn.CN0_dB_hz = -1;
             }
 
             #if 0
