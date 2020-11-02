@@ -247,22 +247,31 @@ int main(int argc, char** argv)
     gps_cnav_eph.i_GPS_week = week;
     gal_eph.WN_5 = week;
     gps_eph.i_GPS_week = week;
-    //double first_rx_time = -1;
-    //if (!isGalileo)
-    ///    rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gal, 0.0);
-    //else
-    //    rinex->rinex_obs_header(rinex->obsFile, rinex_eph_gps, 0.0);
 
+
+    int prev_prn[obs_n_channels];
+    double prn_start_tm[obs_n_channels];
+    bool prev_lli[obs_n_channels];
+    bool first_valid = true;
+
+    for (int ii = 0; ii < obs_n_channels; ++ii)
+    {
+        prev_prn[ii] = -1;
+        prev_lli[ii] = 0;
+    }
+
+    //int lli[obs_n_channels];
 
     observables.restart();
+
     while (observables.read_binary_obs())
     {
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
         double rx_time = 0;
         bool anyValid = false;
-
         bool error  = false;
+        bool all_lli = false;
 
         for (int n = 0; n < obs_n_channels; n++)
         {
@@ -333,7 +342,7 @@ int main(int argc, char** argv)
             }
             gns_syn.PRN = prn;
 
-#if 1
+#if 0
             gns_syn.RX_time = observables.RX_time[n];
             gns_syn.interp_TOW_ms = observables.TOW_at_current_symbol_s[n] * 1000;
             gns_syn.Carrier_Doppler_hz = observables.Carrier_Doppler_hz[n];
@@ -384,6 +393,29 @@ int main(int argc, char** argv)
             //gns_syn.Pseudorange_m = (int)(observables.Pseudorange_m[n] * 1000) / 1000.0;
 
 #endif
+
+            // udawanie LLI po dodaniu nowej sat
+            if (1 && valid)
+            {
+                if (first_valid)
+                    prn_start_tm[n] = observables.RX_time[n] - 1000;
+                else if (prev_prn[n] != prn) // prev_prn[n] > 0 &&
+                    prn_start_tm[n] = observables.RX_time[n];
+
+                prev_prn[n] = prn;
+
+                //!first_valid &&
+#warning warunek z góry długie blokowanie sat, trzeba zrobić inteligentniej
+                //TODO eksperymenty ze zmniejszeniem tego czasu
+                bool lli = observables.RX_time[n] - prn_start_tm[n] < 20;
+
+                if (prev_lli[n] && !lli)
+                    all_lli = true;
+                prev_lli[n] = lli;
+
+                if (lli)
+                    gns_syn.CN0_dB_hz = -1;
+            }
 
             #if 0
             #warning dbg
@@ -461,8 +493,12 @@ int main(int argc, char** argv)
         if (!anyValid)
             continue;
 
+        first_valid = false;
+
         if (time_epoch % decym)
             continue;
+
+
 
         // if (epoch_counter < 20)
         //    continue;
@@ -470,6 +506,18 @@ int main(int argc, char** argv)
         //#warning dbg continue
         //if(1 && rx_time < 557850) //|| rx_time > 559700) // 567165) //566762)
         //    continue;
+
+        if (all_lli)
+        {
+            std::map<int, Gnss_Synchro> gnss_synchro_map_new;
+            for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+            {
+                Gnss_Synchro gns_syn = it->second;
+                gns_syn.CN0_dB_hz = -1;
+                gnss_synchro_map_new.insert(std::pair<int, Gnss_Synchro>(it->first, gns_syn));
+            }
+            gnss_synchro_map = gnss_synchro_map_new;
+        }
 
         if (WRITE_OBS_CSV)
         {
