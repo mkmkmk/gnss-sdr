@@ -161,6 +161,11 @@ public:
 };
 
 
+double truncmod(double a, double b)
+{
+    return a - b * trunc(a / b);
+}
+
 
 int main(int argc, char** argv)
 {
@@ -253,11 +258,13 @@ int main(int argc, char** argv)
     double prn_start_tm[obs_n_channels];
     bool prev_lli[obs_n_channels];
     bool first_valid = true;
+    double prev_carr[obs_n_channels];
 
     for (int ii = 0; ii < obs_n_channels; ++ii)
     {
         prev_prn[ii] = -1;
         prev_lli[ii] = 0;
+        prev_carr[ii] = 0;
     }
 
     //int lli[obs_n_channels];
@@ -371,6 +378,11 @@ int main(int argc, char** argv)
 
             //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
             gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * TWO_PI;
+
+            // 1e9 rollover bo nie mieści się w rinex
+            gns_syn.Carrier_phase_rads = truncmod(gns_syn.Carrier_phase_rads, 1e9 * TWO_PI);
+
+
             //gns_syn.Carrier_phase_rads = carr_smth[n]->next(observables.Acc_carrier_phase_hz[n] * TWO_PI);
 
             //gns_syn.Carrier_phase_rads = -observables.Acc_carrier_phase_hz[n] * TWO_PI;
@@ -408,6 +420,11 @@ int main(int argc, char** argv)
 #warning warunek z góry długie blokowanie sat, trzeba zrobić inteligentniej
                 //TODO eksperymenty ze zmniejszeniem tego czasu
                 bool lli = observables.RX_time[n] - prn_start_tm[n] < 20;
+
+                // LLI na całej epoce gdy następuje rollover fazy
+                if (fabs(prev_carr[n] - gns_syn.Carrier_phase_rads) > 1e8 * TWO_PI)
+                    all_lli = true;
+                prev_carr[n] =  gns_syn.Carrier_phase_rads;
 
                 if (prev_lli[n] && !lli)
                     all_lli = true;
