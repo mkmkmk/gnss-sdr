@@ -42,6 +42,7 @@
 #include "gpx_printer.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
@@ -682,6 +683,9 @@ int main(int argc, char** argv)
 
     bool save_gpx = configuration->property("obs_to_nav.save_gpx", false);
 
+    double carr_bias = configuration->property("obs_to_nav.carr_bias", 0.0);
+
+    std::cout << "carr_bias = " << carr_bias << std::endl;
 
 #if 0
 #include "conf-inc-obso.c"
@@ -823,7 +827,9 @@ int main(int argc, char** argv)
     FILE *fcsv_ch[obs_n_channels];
     double prev_csv_carr[obs_n_channels];
     double prev_csv_tm[obs_n_channels];
-
+    double prev_rxtime[obs_n_channels];
+    double carr_acc[obs_n_channels];
+    double prev_carr[obs_n_channels];
 
     std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
@@ -833,6 +839,8 @@ int main(int argc, char** argv)
         carr_smth[i] = std::make_shared<MovingMean<50>>();
         rng_smth[i] = std::make_shared<MovingMean<50>>();
         rx_smth[i] = std::make_shared<MovingMean<50>>();
+        prev_carr[i] = 0;
+        prev_rxtime[i] = 0;
     }
 
     if (WRITE_OBS_CSV)
@@ -946,11 +954,33 @@ int main(int argc, char** argv)
             //        (int)(observables.RX_time[n]*1000) / 1000.0 +
             //        observables.Pseudorange_m[n] / SPEESPEED_OF_LIGHT_M_S;
 
-            gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
-            gns_syn.Carrier_Doppler_hz = 0; // observables.Carrier_Doppler_hz[n];
+            //gns_syn.interp_TOW_ms = 0; //observables.TOW_at_current_symbol_s[n] * 1000;
+            gns_syn.Carrier_Doppler_hz = 666; // observables.Carrier_Doppler_hz[n];
+            gns_syn.CN0_dB_hz = 55;
+
+            double carr = observables.Acc_carrier_phase_hz[n];
+
+            if (carr_bias != 0)
+            {
+
+                if (prev_rxtime[n] == 0 || (prev_carr[n] != 0 && abs(prev_carr[n] - carr) > 100e6))
+                {
+                    carr_acc[n] = -carr;
+                }
+                else
+                {
+                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias;
+                }
+
+                prev_rxtime[n] = observables.RX_time[n];
+                prev_carr[n] = carr;
+
+                carr += carr_acc[n];
+            }
+
 
             //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
-            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * TWO_PI;
+            gns_syn.Carrier_phase_rads = carr * TWO_PI;
             //gns_syn.Carrier_phase_rads = carr_smth[n]->next(observables.Acc_carrier_phase_hz[n] * TWO_PI);
 
             //gns_syn.Carrier_phase_rads = -observables.Acc_carrier_phase_hz[n] * TWO_PI;
