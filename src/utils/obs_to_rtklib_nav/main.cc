@@ -695,6 +695,25 @@ int main(int argc, char** argv)
 
     rtk_t rtk = configure_rtklib_options(configuration);
 
+
+    int isGalileo = 0;
+
+    if (rtk.opt.navsys == 1)
+    {
+        //isGalileo = 0;
+        isGalileo = MK_MOD_GPS_AS_GALILEO;
+    }
+    else if (rtk.opt.navsys == 8)
+    {
+        isGalileo = 1;
+    }
+    else
+    {
+        printf("not implemented GNSS system : '%d' \n", rtk.opt.navsys);
+        return 1;
+    }
+
+
     //std::unique_ptr<Rtklib_Solver> d_ls_pvt(
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
     //                           save_to_mat, rtk));
@@ -854,7 +873,7 @@ int main(int argc, char** argv)
 
             Gnss_Synchro gns_syn;
 
-            if (!MK_MOD_GPS_AS_GALILEO)
+            if (!isGalileo)
             {
                 gns_syn.System = 'G';
                 gns_syn.Signal[0] = '1';
@@ -887,7 +906,7 @@ int main(int argc, char** argv)
                 //gns_syn.Signal[0] = '2';
                 //gns_syn.Signal[1] = 'S';
 
-                if (!MK_MOD_GPS_AS_GALILEO)
+                if (!isGalileo)
                 {
                     gns_syn.Signal[0] = 'L';
                     gns_syn.Signal[1] = '5';
