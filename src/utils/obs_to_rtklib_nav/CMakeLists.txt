@@ -50,7 +50,7 @@ if(CMAKE_VERSION VERSION_LESS 3.5)
 endif()
 
 
-add_definitions(-DTEST_PATH="${CMAKE_SOURCE_DIR}/thirdparty/")
+#add_definitions(-DTEST_PATH="${CMAKE_SOURCE_DIR}/thirdparty/")
 
 #find_program(UNCOMPRESS_EXECUTABLE uncompress
 #    PATHS /bin
@@ -75,7 +75,7 @@ if(Boost_FOUND)
             #algorithms_libs
             signal_processing_testing_lib
             core_receiver
-            core_system_parameters
+            #core_system_parameters
     )
 
     target_include_directories(obs_to_rtklib_nav
