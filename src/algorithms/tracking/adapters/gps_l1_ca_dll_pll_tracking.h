@@ -27,7 +27,8 @@
 #ifndef GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H
 #define GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H
 
-#include "dll_pll_veml_tracking_md.h"
+#include "dll_pll_veml_tracking.h"
+//#include "dll_pll_veml_tracking_md.h"
 #include "tracking_interface.h"
 #include <string>
 
@@ -87,7 +88,8 @@ public:
     void stop_tracking() override;
 
 private:
-    dll_pll_veml_tracking_md_sptr tracking_;
+    dll_pll_veml_tracking_sptr tracking_;
+    //dll_pll_veml_tracking_md_sptr tracking_;
     size_t item_size_;
     unsigned int channel_;
     std::string role_;

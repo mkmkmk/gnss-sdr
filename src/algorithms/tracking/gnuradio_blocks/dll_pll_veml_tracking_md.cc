@@ -96,8 +96,9 @@ static gr::thread::mutex d_gnss_sim_lock;
 #define _SIGN(value) (value >= 0 ? 1 : -1)
 // mnożenie Q10 i kwantowanie 1, 3, 5, 7 ...
 #define _SCALE_1357(value, mul_Q10) (1 + (((abs(value) * (mul_Q10 >> 1)) >> 10) << 1)) * _SIGN(value)
-#define SIG_MUL_Q10 (30)
+//#define SIG_MUL_Q10 (30)
 //#define SIG_MUL_Q10 (100)
+#define SIG_MUL_Q10 (6)
 
 #define TICKS_INFO_MASK 0x3FF
 
@@ -105,7 +106,7 @@ static bool _isTickChan[SIM_CHANNEL_NUM];
 static int64_t _gnss_sim_track_chan_samp = 0;
 
 // tak naprawdę tylko ten kanał karmi próbkami gnssSim
-#define GNSS_SIM_TRACK_CHAN (0)
+#define GNSS_SIM_TRACK_CHAN (1)
 
 // ---------
 
@@ -1827,6 +1828,14 @@ int dll_pll_veml_tracking_md::general_work(int noutput_items __attribute__((unus
                         clear_tracking_vars();
                         d_state = 0;  // loss-of-lock detected
                     }
+
+                if (0 && d_s_lock == 0 && d_tick_idx > 6 * 1000 && d_channel != GNSS_SIM_TRACK_CHAN)
+                {
+                    clear_tracking_vars();
+                    printdma("#%d| gnss-sim no lock\n", d_channel);
+                    d_state = 0;  // loss-of-lock detected
+
+                }
                 else
                     {
                         bool next_state = false;
