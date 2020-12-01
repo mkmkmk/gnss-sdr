@@ -830,6 +830,7 @@ int main(int argc, char** argv)
     double prev_rxtime[obs_n_channels];
     double carr_acc[obs_n_channels];
     double prev_carr[obs_n_channels];
+    double carr_rx0 = -1;
 
     std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
@@ -963,9 +964,14 @@ int main(int argc, char** argv)
             if (carr_bias != 0)
             {
 
+                if (carr_rx0 < 0)
+                    carr_rx0 = observables.RX_time[n];
+
                 if (prev_rxtime[n] == 0 || (prev_carr[n] != 0 && abs(prev_carr[n] - carr) > 100e6))
                 {
                     carr_acc[n] = -carr;
+                    carr_acc[n] += (observables.RX_time[n] - carr_rx0) * carr_bias;
+                    printf("-- %g rst carr sat %d\n", observables.RX_time[n], (int)observables.PRN[n]);
                 }
                 else
                 {
