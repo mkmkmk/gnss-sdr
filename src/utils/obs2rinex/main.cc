@@ -64,7 +64,7 @@
 
 #define WRITE_OBS_CSV (0)
 
-#define DUAL_RINEX (0)
+//#define DUAL_RINEX (0)
 
 
 
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 
     if (argc < 4)
     {
-        printf("args: obs-path channels week [isGalileo]\n");
+        printf("args: obs-path channels week [isGalileo] [isDual] [carrBias] \n");
         return 1;
     }
 
@@ -194,7 +194,23 @@ int main(int argc, char** argv)
 
     int isGalileo = argc > 4 && atoi(argv[4]) != 0; //|| MK_MOD_GPS_AS_GALILEO;
 
+    int isDual = 0;
+    if (argc > 5)
+        isDual = atoi(argv[5]);
+
+    double carr_bias = 0;
+    if (argc > 6)
+        carr_bias = atof(argv[6]);
+
+
+    printf("obs_n_channels = %d\n", obs_n_channels);
+    printf("week           = %d\n", week);
+    printf("isGalileo      = %d\n", isGalileo);
+    printf("isDual         = %d\n", isDual);
+    printf("carr_bias      = %.10g\n", carr_bias);
+
     int decym = 1;
+
 
     Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
 
@@ -256,12 +272,18 @@ int main(int argc, char** argv)
 
     bool first_valid = true;
     int prev_prn[obs_n_channels];
-    double prev_carr[obs_n_channels];
+    double prev_carr_rad[obs_n_channels];
+    double prev_carr0[obs_n_channels];
+    double prev_rxtime[obs_n_channels];
+    double carr_acc[obs_n_channels];
 
     for (int ii = 0; ii < obs_n_channels; ++ii)
     {
         prev_prn[ii] = -1;
-        prev_carr[ii] = 0;
+        prev_carr_rad[ii] = 0;
+        prev_carr0[ii] = 0;
+        prev_rxtime[ii] = 0;
+        carr_acc[ii] = 0;
     }
 
     //int lli[obs_n_channels];
@@ -374,8 +396,34 @@ int main(int argc, char** argv)
             gns_syn.Carrier_Doppler_hz = 666; // observables.Carrier_Doppler_hz[n];
             gns_syn.CN0_dB_hz = 55;
 
+            double carr = observables.Acc_carrier_phase_hz[n];
+            double carr0 = carr;
+
+            if (fabs(carr - -125937220.116) <= 0.001)
+            {
+                printf("dbg\n");
+            }
+
+            if (carr_bias != 0)
+            {
+
+                if (prev_rxtime[n] == 0 || (prev_carr0[n] != 0 && abs(prev_carr0[n] - carr) > 100e6))
+                {
+                    carr_acc[n] = -carr;
+                }
+                else
+                {
+                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias;
+                }
+
+                prev_rxtime[n] = observables.RX_time[n];
+                prev_carr0[n] = carr0;
+
+                carr += carr_acc[n];
+            }
+
             //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
-            gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * TWO_PI;
+            gns_syn.Carrier_phase_rads = carr * TWO_PI;
 
             // 1e9 rollover bo nie mieści się w rinex
             gns_syn.Carrier_phase_rads = truncmod(gns_syn.Carrier_phase_rads, 1e9 * TWO_PI);
@@ -388,6 +436,7 @@ int main(int argc, char** argv)
             //gns_syn.Carrier_phase_rads = ((int)(observables.Acc_carrier_phase_hz[n] / 300)) * GPS_TWO_PI * 300.0;
             //gns_syn.Carrier_phase_rads = ((int)(-observables.Acc_carrier_phase_hz[n] / 1)) * TWO_PI * 1;
             //gns_syn.Carrier_phase_rads = 0;
+
 
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
             gns_syn.interp_TOW_ms = gns_syn.RX_time - gns_syn.Pseudorange_m / SPEED_OF_LIGHT_M_S;
@@ -412,10 +461,14 @@ int main(int argc, char** argv)
                 prev_prn[n] = prn;
 
                 // LLI na całej epoce gdy następuje rollover fazy
-                if (fabs(prev_carr[n] - gns_syn.Carrier_phase_rads) > 1e8 * TWO_PI)
+                if (fabs(prev_carr_rad[n] - gns_syn.Carrier_phase_rads) > 1e8 * TWO_PI)
                     all_lli = true;
-                prev_carr[n] =  gns_syn.Carrier_phase_rads;
+
+                //prev_carr[n] =  gns_syn.Carrier_phase_rads;
             }
+
+            prev_carr_rad[n] = gns_syn.Carrier_phase_rads;
+
 
             #if 0
             #warning dbg
@@ -509,6 +562,7 @@ int main(int argc, char** argv)
 
         if (all_lli)
         {
+            std::cout << "  all LLI " << std::endl;
             std::map<int, Gnss_Synchro> gnss_synchro_map_new;
             for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
             {
@@ -517,6 +571,7 @@ int main(int argc, char** argv)
                 gnss_synchro_map_new.insert(std::pair<int, Gnss_Synchro>(it->first, gns_syn));
             }
             gnss_synchro_map = gnss_synchro_map_new;
+
         }
 
         if (WRITE_OBS_CSV)
@@ -531,7 +586,7 @@ int main(int argc, char** argv)
             {
                 //assert(first_rx_time > 0);
                 rinex_hdr_wr = 1;
-                if (!DUAL_RINEX)
+                if (!isDual)
                     rinex->rinex_obs_header(rinex->obsFile, gps_eph, rx_time);
                 else
                     rinex->rinex_obs_header(rinex->obsFile, gps_eph, gps_cnav_eph, rx_time, "1C L5");
@@ -544,7 +599,7 @@ int main(int argc, char** argv)
         if (!isGalileo)
         {
             //rinex_eph_gps_cnav
-            if (!DUAL_RINEX)
+            if (!isDual)
                 rinex->log_rinex_obs(rinex->obsFile, gps_eph, rx_time, gnss_synchro_map);
             else
                 rinex->log_rinex_obs(rinex->obsFile, gps_eph, gps_cnav_eph, rx_time, gnss_synchro_map);
