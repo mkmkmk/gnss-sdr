@@ -629,6 +629,9 @@ int main(int argc, char** argv)
     std::cout << "rinex    : " << rinex->obsfilename.c_str() << std::endl;
     std::cout << "DONE" << std::endl;
 
+    std::ifstream  src(rinex->obsfilename, std::ios::binary);
+    std::ofstream  dst(obs_filename+".O",   std::ios::binary);
+    dst << src.rdbuf();
 
     if (WRITE_OBS_CSV)
     {
