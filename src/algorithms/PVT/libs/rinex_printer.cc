@@ -11948,10 +11948,11 @@ boost::posix_time::ptime Rinex_Printer::compute_GPS_time(const Gps_Ephemeris& ep
         }
 
     // Handle week rollover
+    // MK prop: if ((eph.i_GPS_week % 1024) < 512)
     if (pre_2009_file_ == false)
         {
             // Handle week rollover (valid from 2009 to 2029)
-            if (eph.i_GPS_week < 512)
+            if ((eph.i_GPS_week % 1024) < 512)
                 {
                     boost::posix_time::ptime p_time(boost::gregorian::date(2019, 4, 7), t);
                     return p_time;
