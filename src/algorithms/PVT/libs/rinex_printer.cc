@@ -10241,28 +10241,34 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, c
             if ((system_ == "G") && (sig_ == "2S"))
                 {
                     observablesL2.insert(std::pair<int32_t, Gnss_Synchro>(observables_iter->first, observables_iter->second));
+#if 0
                     mmap_iter = total_mmap.find(observables_iter->second.PRN);
                     if (mmap_iter == total_mmap.end())
                         {
                             Gnss_Synchro gs = Gnss_Synchro();
                             total_mmap.insert(std::pair<uint32_t, Gnss_Synchro>(observables_iter->second.PRN, gs));
                         }
+#endif
                     total_mmap.insert(std::pair<uint32_t, Gnss_Synchro>(observables_iter->second.PRN, observables_iter->second));
                 }
 
             if ((system_ == "G") && (sig_ == "L5"))
                 {
                     observablesL5.insert(std::pair<int32_t, Gnss_Synchro>(observables_iter->first, observables_iter->second));
+#if 0
                     mmap_iter = total_mmap.find(observables_iter->second.PRN);
                     if (mmap_iter == total_mmap.end())
                         {
                             Gnss_Synchro gs = Gnss_Synchro();
                             total_mmap.insert(std::pair<uint32_t, Gnss_Synchro>(observables_iter->second.PRN, gs));
                         }
+#endif
                     total_mmap.insert(std::pair<uint32_t, Gnss_Synchro>(observables_iter->second.PRN, observables_iter->second));
                 }
         }
 
+    //MKMOD to jakiś shit
+#if 0
     // Fill with zeros satellites with L1 obs but not L2
     std::multimap<uint32_t, Gnss_Synchro> mmap_aux;
     mmap_aux = total_mmap;
@@ -10281,6 +10287,7 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, c
                     total_mmap.insert(std::pair<uint32_t, Gnss_Synchro>(mmap_iter->second.PRN, gs));
                 }
         }
+#endif
 
     std::set<uint32_t> available_prns;
     std::set<uint32_t>::iterator it;
