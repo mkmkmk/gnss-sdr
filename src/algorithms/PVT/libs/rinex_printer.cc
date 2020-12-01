@@ -9884,14 +9884,16 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
 
                     // Loss of lock indicator (LLI)
                     int32_t lli = 0;  // Include in the observation!!
+                    if (observables_iter->second.CN0_dB_hz < 0)
+                       lli = 5;
                     if (lli == 0)
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                    else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
 
                     // Signal Strength Indicator (SSI)
                     const int32_t ssi = Rinex_Printer::signalStrength(observables_iter->second.CN0_dB_hz);
@@ -9902,10 +9904,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                    else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
                     // GPS L1 CA DOPPLER
                     lineObs += Rinex_Printer::rightJustify(asString(observables_iter->second.Carrier_Doppler_hz, 3), 14);
@@ -9913,10 +9915,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //       lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //   }
+                    else
+                        {
+                           lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
                     // GPS L1 SIGNAL STRENGTH
                     lineObs += Rinex_Printer::rightJustify(asString(observables_iter->second.CN0_dB_hz, 3), 14);
@@ -9990,14 +9992,16 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
 
                     // Loss of lock indicator (LLI)
                     int32_t lli = 0;  // Include in the observation!!
+                    if (observables_iter->second.CN0_dB_hz < 0)
+                       lli = 5;
                     if (lli == 0)
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                    else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
 
                     // Signal Strength Indicator (SSI)
                     const int32_t ssi = Rinex_Printer::signalStrength(observables_iter->second.CN0_dB_hz);
@@ -10009,10 +10013,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                    else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
 
                     // GPS L1 CA DOPPLER
@@ -10021,10 +10025,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, d
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                    else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
 
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
 
@@ -10166,6 +10170,7 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_CNAV_Ephemeris& e
             out << lineObs << '\n';
         }
 }
+
 
 
 void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, const Gps_CNAV_Ephemeris& eph_cnav, double obs_time, const std::map<int32_t, Gnss_Synchro>& observables, bool triple_band) const
@@ -10354,14 +10359,18 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, c
 
                     // Loss of lock indicator (LLI)
                     int32_t lli = 0;  // Include in the observation!!
+
+                    if (iter->second.CN0_dB_hz < 0)
+                        lli = 5;
+
                     if (lli == 0)
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //   {
-                    //       lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //   }
+                    else
+                        {
+                           lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
 
                     // Signal Strength Indicator (SSI)
                     const int32_t ssi = Rinex_Printer::signalStrength(iter->second.CN0_dB_hz);
@@ -10373,10 +10382,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, c
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                     else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
 
                     // GPS  DOPPLER
@@ -10385,10 +10394,10 @@ void Rinex_Printer::log_rinex_obs(std::fstream& out, const Gps_Ephemeris& eph, c
                         {
                             lineObs += std::string(1, ' ');
                         }
-                    // else
-                    //    {
-                    //        lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
-                    //    }
+                     else
+                        {
+                            lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int16_t>(lli), 1);
+                        }
                     lineObs += Rinex_Printer::rightJustify(Rinex_Printer::asString<int32_t>(ssi), 1);
 
                     // GPS SIGNAL STRENGTH
