@@ -273,7 +273,7 @@ int main(int argc, char** argv)
     bool first_valid = true;
     int prev_prn[obs_n_channels];
     double prev_carr_rad[obs_n_channels];
-    double prev_carr0[obs_n_channels];
+    double prev_carr[obs_n_channels];
     double prev_rxtime[obs_n_channels];
     double carr_acc[obs_n_channels];
 
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
     {
         prev_prn[ii] = -1;
         prev_carr_rad[ii] = 0;
-        prev_carr0[ii] = 0;
+        prev_carr[ii] = 0;
         prev_rxtime[ii] = 0;
         carr_acc[ii] = 0;
     }
@@ -397,7 +397,6 @@ int main(int argc, char** argv)
             gns_syn.CN0_dB_hz = 55;
 
             double carr = observables.Acc_carrier_phase_hz[n];
-            double carr0 = carr;
 
             if (fabs(carr - -125937220.116) <= 0.001)
             {
@@ -407,7 +406,7 @@ int main(int argc, char** argv)
             if (carr_bias != 0)
             {
 
-                if (prev_rxtime[n] == 0 || (prev_carr0[n] != 0 && abs(prev_carr0[n] - carr) > 100e6))
+                if (prev_rxtime[n] == 0 || (prev_carr[n] != 0 && abs(prev_carr[n] - carr) > 100e6))
                 {
                     carr_acc[n] = -carr;
                 }
@@ -417,7 +416,7 @@ int main(int argc, char** argv)
                 }
 
                 prev_rxtime[n] = observables.RX_time[n];
-                prev_carr0[n] = carr0;
+                prev_carr[n] = carr;
 
                 carr += carr_acc[n];
             }
