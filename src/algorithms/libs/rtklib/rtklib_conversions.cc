@@ -43,6 +43,10 @@ obsd_t insert_obs_to_rtklib(obsd_t& rtklib_obs, const Gnss_Synchro& gnss_synchro
     rtklib_obs.P[band] = gnss_synchro.Pseudorange_m;
     rtklib_obs.L[band] = gnss_synchro.Carrier_phase_rads / TWO_PI;
 
+    // MK-MOD
+    if (gnss_synchro.CN0_dB_hz <= -0.001)
+        rtklib_obs.LLI[band] = 1;
+
     switch (band)
         {
         case 0:
