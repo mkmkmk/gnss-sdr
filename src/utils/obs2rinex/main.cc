@@ -276,6 +276,7 @@ int main(int argc, char** argv)
     double prev_carr[obs_n_channels];
     double prev_rxtime[obs_n_channels];
     double carr_acc[obs_n_channels];
+    double prev_rng[obs_n_channels];
 
     for (int ii = 0; ii < obs_n_channels; ++ii)
     {
@@ -284,6 +285,7 @@ int main(int argc, char** argv)
         prev_carr[ii] = 0;
         prev_rxtime[ii] = 0;
         carr_acc[ii] = 0;
+        prev_rng[ii] = 0;
     }
 
     //int lli[obs_n_channels];
@@ -415,7 +417,6 @@ int main(int argc, char** argv)
                     carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias;
                 }
 
-                prev_rxtime[n] = observables.RX_time[n];
                 prev_carr[n] = carr;
 
                 carr += carr_acc[n];
@@ -439,6 +440,24 @@ int main(int argc, char** argv)
 
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
             gns_syn.interp_TOW_ms = gns_syn.RX_time - gns_syn.Pseudorange_m / SPEED_OF_LIGHT_M_S;
+
+            // wykrywanie skoków tx time ("*** rx_time_set ***")
+            // - niezbyt dobrze działa
+            bool lli = false;
+            if (observables.RX_time[n] - prev_rxtime[n] < 1e-3)
+            {
+                lli = true;
+            }
+            else if (fabs(gns_syn.Pseudorange_m - prev_rng[n]) / (observables.RX_time[n] - prev_rxtime[n]) > 10000)
+            {
+                lli = true;
+            }
+
+            prev_rng[n] = gns_syn.Pseudorange_m;
+            prev_rxtime[n] = observables.RX_time[n];
+
+            if (lli)
+                gns_syn.CN0_dB_hz = -1;
 
             //pseudorange_m = (self->rx_time - txTime) * c ;
             //pseudorange_m/c = self->rx_time - txTime;
