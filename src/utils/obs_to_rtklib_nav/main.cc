@@ -585,31 +585,53 @@ void save_ephemeris_csv(std::string eph_xml_filename)
 }
 
 
-void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr)
+
+#define LAMBDA_L1 ( SPEED_OF_LIGHT_M_S / 1540 / 1023000)
+
+
+void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr, double *prev_rg, std::shared_ptr<MovingAv<50>> *bias_smth)
 {
     double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT_M_S;// - .068;
     double carr = o->Carrier_phase_rads / TWO_PI;
 
     double tm_dt = o->RX_time - *prev_tm;
-    double freq = 0;
-    if(tm_dt >= 0.001)
-        freq = (carr - *prev_carr) / (tm_dt);
+    double carr_f = 0;
+    double range_f = 0;
+    double bias_f = 0;
+    if (*prev_tm >= 0.001 && tm_dt >= 0.001)
+    {
+        carr_f = -(carr - *prev_carr) / tm_dt;
+        range_f = -(o->Pseudorange_m - *prev_rg) / tm_dt / LAMBDA_L1;
+
+        if(fabs(carr_f-range_f) < 5000)
+            bias_f = (*bias_smth)->next(carr_f - range_f);
+        else
+        {
+            printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
+        }
+    }
     else
+    {
         tm_dt = 0.001;
+    }
+
 
     fprintf(
             fcsv,
-            "%.15g; %.12g; %.20g; %d; %g; %.15g; %g\n",
+            "%.15g; %.12g; %.20g; %d; %g; %.15g; %g; %g; %g\n",
             o->RX_time,
             o->Pseudorange_m,
             carr,
             o->PRN,
             o->Carrier_Doppler_hz,
             ttime,
-            freq
+            carr_f,
+            range_f,
+            bias_f
     );
     *prev_carr = carr;
     *prev_tm = o->RX_time;
+    *prev_rg = o->Pseudorange_m;
 }
 
 
@@ -632,7 +654,7 @@ int start_obs_csv(const char *readPath, FILE **fcsv_ch, int chan_num)
             return 1;
         }
         // fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; valid_ch%d\n", i, i, i, i);
-        fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; doppler; t-time; d/dt(carr)\n", i, i, i);
+        fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; doppler; t-time; dopp(carr); dopp(rng); bias\n", i, i, i);
 
     }
     printf("--\n");
@@ -829,6 +851,7 @@ int main(int argc, char** argv)
 
     FILE *fcsv_ch[obs_n_channels];
     double prev_csv_carr[obs_n_channels];
+    double prev_csv_rg[obs_n_channels];
     double prev_csv_tm[obs_n_channels];
     double prev_rxtime[obs_n_channels];
     double carr_acc[obs_n_channels];
@@ -838,6 +861,7 @@ int main(int argc, char** argv)
     std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
     std::shared_ptr<MovingMean<50>> rx_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
     for (int i = 0; i < obs_n_channels; ++i)
     {
         carr_smth[i] = std::make_shared<MovingMean<50>>();
@@ -845,6 +869,8 @@ int main(int argc, char** argv)
         rx_smth[i] = std::make_shared<MovingMean<50>>();
         prev_carr[i] = 0;
         prev_rxtime[i] = 0;
+        prev_range[i] = 0;
+        bias_csv_smth[i] = std::make_shared<MovingAv<50>>();
     }
 
     if (WRITE_OBS_CSV)
@@ -1121,7 +1147,10 @@ int main(int argc, char** argv)
         if (WRITE_OBS_CSV)
         {
             for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
-                write_obs_csv(fcsv_ch[it->first], &it->second, prev_csv_tm + it->first, prev_csv_carr + it->first);
+            {
+                int n = it->first;
+                write_obs_csv(fcsv_ch[n], &it->second, prev_csv_tm + n, prev_csv_carr + n, prev_csv_rg + n, bias_csv_smth + n);
+            }
         }
 
 
