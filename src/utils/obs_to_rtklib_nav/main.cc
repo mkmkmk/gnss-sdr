@@ -947,12 +947,12 @@ int main(int argc, char** argv)
                 fu_prev_carr[n] = carr;
                 fu_prev_range[n] = fu_observables.Pseudorange_m[n];
             }
-        }
 
-        if (fu_lag_startup)
-        {
-            fu_lag_startup--;
-            continue;
+            if (fu_lag_startup)
+            {
+                fu_lag_startup--;
+                continue;
+            }
         }
 
         if (!observables.read_binary_obs())
