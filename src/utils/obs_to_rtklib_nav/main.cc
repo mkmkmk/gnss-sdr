@@ -1283,6 +1283,7 @@ int main(int argc, char** argv)
                           << " DIFF: " << (rx_time - toe) << " s "
                           << std::endl;
             }
+            break;
         }
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
