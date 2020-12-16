@@ -858,15 +858,18 @@ int main(int argc, char** argv)
     double prev_carr[obs_n_channels];
     double carr_rx0 = -1;
 
-    std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
-    std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
-    std::shared_ptr<MovingMean<50>> rx_smth[obs_n_channels];
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
+
+    auto bias_smth = std::make_shared<MovingAv<250>>();
+
+    std::shared_ptr<MovingAv<50>> carr_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> rng_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> rx_smth[obs_n_channels];
     for (int i = 0; i < obs_n_channels; ++i)
     {
-        carr_smth[i] = std::make_shared<MovingMean<50>>();
-        rng_smth[i] = std::make_shared<MovingMean<50>>();
-        rx_smth[i] = std::make_shared<MovingMean<50>>();
+        carr_smth[i] = std::make_shared<MovingAv<50>>();
+        rng_smth[i] = std::make_shared<MovingAv<50>>();
+        rx_smth[i] = std::make_shared<MovingAv<50>>();
         prev_carr[i] = 0;
         prev_rxtime[i] = 0;
         prev_range[i] = 0;
