@@ -708,9 +708,10 @@ int main(int argc, char** argv)
 
     bool save_gpx = configuration->property("obs_to_nav.save_gpx", false);
 
-    double carr_bias = configuration->property("obs_to_nav.carr_bias", 0.0);
+    double carr_bias0 = configuration->property("obs_to_nav.carr_bias", 0.0);
+    std::cout << "carr_bias = " << carr_bias0 << std::endl;
+    double carr_bias_cmp = carr_bias0;
 
-    std::cout << "carr_bias = " << carr_bias << std::endl;
 
 #if 0
 #include "conf-inc-obso.c"
@@ -840,7 +841,7 @@ int main(int argc, char** argv)
 
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]\n");
 
     FILE *resCsv = fopen((obs_filename + "_res.csv").c_str(), "w");
     fprintf(resCsv, "time");
@@ -857,13 +858,16 @@ int main(int argc, char** argv)
     rtkopenstat((obs_filename + "_stat.txt").c_str(), 2);
 
     FILE *fcsv_ch[obs_n_channels];
+
     double prev_csv_carr[obs_n_channels];
     double prev_csv_rg[obs_n_channels];
     double prev_csv_tm[obs_n_channels];
-    double prev_rxtime[obs_n_channels];
+
     double carr_acc[obs_n_channels];
+
+    double prev_rxtime[obs_n_channels];
     double prev_carr[obs_n_channels];
-    double carr_rx0 = -1;
+    double prev_range[obs_n_channels];
 
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
@@ -891,6 +895,9 @@ int main(int argc, char** argv)
     observables.restart();
     while (observables.read_binary_obs())
     {
+        double curr_carr_biases[obs_n_channels];
+        int curr_carr_biases_num = 0;
+
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
         double rx_time = 0;
@@ -1000,7 +1007,28 @@ int main(int argc, char** argv)
 
             double carr = observables.Acc_carrier_phase_hz[n];
 
-            if (carr_bias != 0)
+            if (1)
+            {
+                double range = observables.Pseudorange_m[n];
+                double tm_dt = observables.RX_time[n] - prev_rxtime[n];
+                if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+                {
+
+                    double carr_f = -(carr - prev_carr[n]) / tm_dt;
+                    double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_L1;
+
+                    if (fabs(carr_f - carr_bias0 - range_f) < 5000)
+                    {
+                        //carr_bias_cmp = bias_smth->next(carr_f - range_f);
+                        curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
+                        curr_carr_biases_num++;
+                    }
+                    else
+                    {
+                        printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
+                    }
+                }
+            }
             {
 
                 if (carr_rx0 < 0)
@@ -1014,15 +1042,15 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias;
+                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias_cmp;
                 }
-
-                prev_rxtime[n] = observables.RX_time[n];
-                prev_carr[n] = carr;
-
-                carr += carr_acc[n];
             }
 
+            prev_rxtime[n] = observables.RX_time[n];
+            prev_carr[n] = carr;
+            prev_range[n] = observables.Pseudorange_m[n];
+
+            carr += carr_acc[n];
 
             //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
             gns_syn.Carrier_phase_rads = carr * TWO_PI;
@@ -1116,6 +1144,26 @@ int main(int argc, char** argv)
 
         if (!anyValid)
             continue;
+
+        // comp mean carr bias
+        if (1 && curr_carr_biases_num)
+        {
+            double bias_med = 0;
+            if (0)
+            {
+                std::vector<double> curr_carr_biases_v(curr_carr_biases, curr_carr_biases + curr_carr_biases_num);
+                std::sort(curr_carr_biases_v.begin(), curr_carr_biases_v.end());
+                bias_med = curr_carr_biases_v[curr_carr_biases_num / 2];
+            }
+            else
+            {
+                for (int ii = 0; ii < curr_carr_biases_num; ++ii)
+                    bias_med += curr_carr_biases[ii];
+            }
+            bias_med /= curr_carr_biases_num;
+            carr_bias_cmp = bias_smth->next(bias_med);
+        }
+
 
         if (time_epoch % decym)
             continue;
@@ -1275,11 +1323,10 @@ int main(int argc, char** argv)
         }
         fprintf(resCsv,"\n");
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc);
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt.get(), false);
-
 
     }
 
