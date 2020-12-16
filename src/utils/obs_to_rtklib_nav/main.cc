@@ -1101,7 +1101,7 @@ int main(int argc, char** argv)
                 anyValid = true;
             }
 
-        }
+        } //for
 
         if (error)
         {
