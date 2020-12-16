@@ -907,9 +907,10 @@ int main(int argc, char** argv)
     for (int kk = 0; kk < 125; ++kk)
         fu_observables.read_binary_obs();
 
+    int fu_lag_startup = 125;
 
     observables.restart();
-    while (observables.read_binary_obs())
+    while (1)
     {
         double curr_carr_biases[obs_n_channels];
         int curr_carr_biases_num = 0;
@@ -947,6 +948,15 @@ int main(int argc, char** argv)
                 fu_prev_range[n] = fu_observables.Pseudorange_m[n];
             }
         }
+
+        if (fu_lag_startup)
+        {
+            fu_lag_startup--;
+            continue;
+        }
+
+        if (!observables.read_binary_obs())
+            break;
 
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
