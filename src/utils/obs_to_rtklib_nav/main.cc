@@ -842,6 +842,13 @@ int main(int argc, char** argv)
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
     fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]\n");
 
+    FILE *resCsv = fopen((obs_filename + "_res.csv").c_str(), "w");
+    fprintf(resCsv, "time");
+    for (int i = 0; i < obs_n_channels; i++)
+        fprintf(resCsv, "; resRng%d; resCarr%d", i, i);
+    fprintf(resCsv, "\n");
+
+
     int64_t epoch_counter = 0;
     int time_epoch = 0;
     double prev_time = -1;
@@ -1253,6 +1260,7 @@ int main(int argc, char** argv)
 
         double max_abs_resp = 0;
         double max_abs_resc = 0;
+        fprintf(resCsv, "%.12g", rx_time);
         for (int i = 0; i < MAXSAT; i++)
         {
             if (!d_ls_pvt->pvt_ssat[i].vs)
@@ -1263,7 +1271,9 @@ int main(int argc, char** argv)
             double resc = d_ls_pvt->pvt_ssat[i].resc[0];
             if (fabs(resc) > fabs(max_abs_resc))
                 max_abs_resc = resc;
+            fprintf(resCsv, "; %g; %g", resp, resc);
         }
+        fprintf(resCsv,"\n");
 
         fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc);
 
@@ -1298,6 +1308,9 @@ int main(int argc, char** argv)
 
     fclose(diffCsv);
     diffCsv = 0;
+
+    fclose(resCsv);
+    resCsv = 0;
 
     if (WRITE_OBS_CSV)
     {
