@@ -62,6 +62,37 @@
 std::string positioning_mode_str;
 
 
+
+template <size_t N>
+class MovingAv
+{
+private:
+    double samples_[N];
+    size_t num_samples_{0};
+    double total_{0};
+
+public:
+    double next(double sample)
+    {
+        if (num_samples_ < N)
+        {
+            samples_[num_samples_++] = sample;
+            total_ += sample;
+        }
+        else
+        {
+            double& oldest = samples_[num_samples_++ % N];
+            total_ += sample - oldest;
+            oldest = sample;
+        }
+        return total_ / std::min(num_samples_, N);
+    }
+
+
+};
+
+
+
 rtk_t configure_rtklib_options(std::shared_ptr<FileConfiguration> configuration)
 {
     std::string role = "rtklib_solver";
@@ -617,34 +648,6 @@ void close_obs_csv(FILE **fcsv_ch, int chan_num)
          fcsv_ch[i] = 0;
     }
 }
-
-template <size_t N>
-class MovingMean
-{
-private:
-    double samples_[N];
-    size_t num_samples_{0};
-    double total_{0};
-
-public:
-    double next(double sample)
-    {
-        if (num_samples_ < N)
-        {
-            samples_[num_samples_++] = sample;
-            total_ += sample;
-        }
-        else
-        {
-            double& oldest = samples_[num_samples_++ % N];
-            total_ += sample - oldest;
-            oldest = sample;
-        }
-        return total_ / std::min(num_samples_, N);
-    }
-
-
-};
 
 
 
