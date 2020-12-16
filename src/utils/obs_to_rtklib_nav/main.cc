@@ -1081,13 +1081,13 @@ int main(int argc, char** argv)
             }
             {
 
-                if (carr_rx0 < 0)
-                    carr_rx0 = observables.RX_time[n];
+                //if (carr_rx0 < 0)
+                //    carr_rx0 = observables.RX_time[n];
 
                 if (prev_rxtime[n] == 0 || (prev_carr[n] != 0 && abs(prev_carr[n] - carr) > 100e6))
                 {
                     carr_acc[n] = -carr;
-                    carr_acc[n] += (observables.RX_time[n] - carr_rx0) * carr_bias;
+                    // carr_acc[n] += (observables.RX_time[n] - carr_rx0) * carr_bias;
                     printf("-- %g rst carr sat %d\n", observables.RX_time[n], (int)observables.PRN[n]);
                 }
                 else
@@ -1175,6 +1175,9 @@ int main(int argc, char** argv)
                     time_epoch++;
                     prev_time = gns_syn.RX_time;
                 }
+
+                //if( first_rx_time < 0)
+                //    first_rx_time = rx_time;
 
                 anyValid = true;
             }
