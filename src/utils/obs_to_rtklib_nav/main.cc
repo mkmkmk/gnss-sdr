@@ -781,12 +781,18 @@ int main(int argc, char** argv)
     int decym = 1;
 
     Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
+    Observables_Dump_Reader fu_observables(obs_n_channels); // przyszłe
+
 
     if (!observables.open_obs_file(obs_filename))
         std::cout << "Failure opening true observables file" << std::endl;
 
     if (!observables.read_binary_obs())
         std::cout << "Failure reading true tracking dump file." << std::endl;
+
+    if (!fu_observables.open_obs_file(obs_filename))
+        std::cout << "Failure opening true observables file" << std::endl;
+
 
     arma::vec sq_sum_ecef = { 0.0, 0.0, 0.0};
     arma::vec sum_meas_pos_ecef = { 0.0, 0.0, 0.0};
@@ -869,6 +875,11 @@ int main(int argc, char** argv)
     double prev_carr[obs_n_channels];
     double prev_range[obs_n_channels];
 
+    double fu_prev_rxtime[obs_n_channels];
+    double fu_prev_carr[obs_n_channels];
+    double fu_prev_range[obs_n_channels];
+
+
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
     auto bias_smth = std::make_shared<MovingAv<250>>();
@@ -892,11 +903,50 @@ int main(int argc, char** argv)
 
     int last_eph_update_tm = -1;
 
+
+    for (int kk = 0; kk < 125; ++kk)
+        fu_observables.read_binary_obs();
+
+
     observables.restart();
     while (observables.read_binary_obs())
     {
         double curr_carr_biases[obs_n_channels];
         int curr_carr_biases_num = 0;
+
+        if (fu_observables.read_binary_obs())
+        {
+            for (int n = 0; n < obs_n_channels; n++)
+            {
+                bool valid = static_cast<bool>(fu_observables.valid[n]);
+                if (!valid)
+                    continue;
+
+                double carr = fu_observables.Acc_carrier_phase_hz[n];
+                double range = fu_observables.Pseudorange_m[n];
+                double tm_dt = fu_observables.RX_time[n] - fu_prev_rxtime[n];
+                if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+                {
+
+                    double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
+                    double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_L1;
+
+                    if (fabs(carr_f - carr_bias0 - range_f) < 5000)
+                    {
+                        //carr_bias_cmp = bias_smth->next(carr_f - range_f);
+                        curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
+                        curr_carr_biases_num++;
+                    }
+                    else
+                    {
+                        printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
+                    }
+                }
+                fu_prev_rxtime[n] = fu_observables.RX_time[n];
+                fu_prev_carr[n] = carr;
+                fu_prev_range[n] = fu_observables.Pseudorange_m[n];
+            }
+        }
 
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
@@ -1007,7 +1057,7 @@ int main(int argc, char** argv)
 
             double carr = observables.Acc_carrier_phase_hz[n];
 
-            if (1)
+            if (0)
             {
                 double range = observables.Pseudorange_m[n];
                 double tm_dt = observables.RX_time[n] - prev_rxtime[n];
