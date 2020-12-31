@@ -1117,7 +1117,6 @@ int main(int argc, char** argv)
             // std::cout << "ph = " << observables.Acc_carrier_phase_hz[n] << std::endl;
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
 #else
-#warning DBG MIN MEAS
             gns_syn.RX_time = observables.RX_time[n];
             //gns_syn.RX_time = rx_smth[n]->next(observables.RX_time[n]);
 
