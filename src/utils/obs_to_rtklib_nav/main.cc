@@ -55,6 +55,12 @@
 
 #define WRITE_OBS_CSV (1)
 
+#define LAMBDA_L1 ( SPEED_OF_LIGHT_M_S / 1540 / 1023000)
+#define LAMBDA_L5 ( SPEED_OF_LIGHT_M_S / 1150 / 1023000)
+#define LAMBDA_XX(IS_DUAL) ((IS_DUAL) ? LAMBDA_L5 : LAMBDA_L1)
+
+#define IS_DUAL(ARG) ((ARG) & 0x80)
+
 
 //TODO Single vs PPP
 //#define USE_PPP (1)
@@ -586,9 +592,6 @@ void save_ephemeris_csv(std::string eph_xml_filename)
 
 
 
-#define LAMBDA_L1 ( SPEED_OF_LIGHT_M_S / 1540 / 1023000)
-
-
 void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr, double *prev_rg, std::shared_ptr<MovingAv<50>> *bias_smth)
 {
     double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT_M_S;// - .068;
@@ -598,10 +601,13 @@ void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *p
     double carr_f = 0;
     double range_f = 0;
     double bias_f = 0;
+
+    int isDual = o->Signal == std::string("L5") || o->Signal == std::string("5X");
+
     if (*prev_tm >= 0.001 && tm_dt >= 0.001)
     {
         carr_f = -(carr - *prev_carr) / tm_dt;
-        range_f = -(o->Pseudorange_m - *prev_rg) / tm_dt / LAMBDA_L1;
+        range_f = -(o->Pseudorange_m - *prev_rg) / tm_dt / LAMBDA_XX(isDual);
 
         if(fabs(carr_f-range_f) < 5000)
             bias_f = (*bias_smth)->next(carr_f - range_f);
@@ -923,6 +929,11 @@ int main(int argc, char** argv)
                 if (!valid)
                     continue;
 
+                int prn = observables.PRN[n];
+
+                if (IS_DUAL(prn))
+                    continue;
+
                 double carr = fu_observables.Acc_carrier_phase_hz[n];
                 double range = fu_observables.Pseudorange_m[n];
                 double tm_dt = fu_observables.RX_time[n] - fu_prev_rxtime[n];
@@ -930,7 +941,7 @@ int main(int argc, char** argv)
                 {
 
                     double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
-                    double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_L1;
+                    double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
                     if (fabs(carr_f - carr_bias0 - range_f) < 5000)
                     {
@@ -1007,11 +1018,11 @@ int main(int argc, char** argv)
 
             #if 0
                 #warning TEMP tylko pasmo 2
-                if ((prn & 0x80) == 0)
+                if (IS_DUAL(prn) == 0)
                     continue;
             #endif
 
-            if (prn & 0x80)
+            if (IS_DUAL(prn))
             {
                 //#warning TEMP tylko pasmo 1
                 //continue;
@@ -1073,9 +1084,10 @@ int main(int argc, char** argv)
                 double tm_dt = observables.RX_time[n] - prev_rxtime[n];
                 if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
                 {
+                    int prn = observables.PRN[n];
 
                     double carr_f = -(carr - prev_carr[n]) / tm_dt;
-                    double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_L1;
+                    double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
                     if (fabs(carr_f - carr_bias0 - range_f) < 5000)
                     {
