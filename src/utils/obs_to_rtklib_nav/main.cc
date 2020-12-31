@@ -62,7 +62,7 @@
 #define BIAS_SMOOTH_MEAN_N (250)
 
 // -- ad usuwanie odstających biasu częstotliwości
-// liczba kolejnych odstająych ogólnej średniej po której kolejne przestają być odstającymi
+// liczba kolejnych odstających od ogólnej średniej po której kolejne przestają być odstającymi
 #define CARR_BIAS_CMP_MAX_SKIP (5)
 
 // próg w Hz na odstających z ogólnej średniej biasu
