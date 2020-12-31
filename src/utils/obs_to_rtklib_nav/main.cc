@@ -765,8 +765,11 @@ int main(int argc, char** argv)
     double carr_bias0 = configuration->property("obs_to_nav.carr_bias", 0.0);
     std::cout << "carr_bias = " << carr_bias0 << std::endl;
     double carr_bias_cmp = carr_bias0;
+    double carr_bias_dual_cmp = carr_bias0;
     double carr_bias_pre_flt = 0;
+    double carr_bias_dual_pre_flt = 0;
     int carr_bias_cmp_skip = 0;
+    int carr_bias_dual_cmp_skip = 0;
 
     // usuwanie lagu, ile próbek w przyszłoś patrzeć
     double future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
@@ -941,6 +944,7 @@ int main(int argc, char** argv)
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
     auto bias_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
+    auto bias_dual_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
 
     std::shared_ptr<MovingAv<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingAv<50>> rng_smth[obs_n_channels];
@@ -970,6 +974,9 @@ int main(int argc, char** argv)
         double curr_carr_biases[obs_n_channels];
         int curr_carr_biases_num = 0;
 
+        double curr_carr_biases_dual[obs_n_channels];
+        int curr_carr_biases_dual_num = 0;
+
         if (fu_observables.read_binary_obs())
         {
             for (int n = 0; n < obs_n_channels; n++)
@@ -980,8 +987,8 @@ int main(int argc, char** argv)
 
                 int prn = observables.PRN[n];
 
-                if (IS_DUAL(prn))
-                    continue;
+                //if (IS_DUAL(prn))
+                //    continue;
 
                 double carr = fu_observables.Acc_carrier_phase_hz[n];
                 double range = fu_observables.Pseudorange_m[n];
@@ -992,11 +999,20 @@ int main(int argc, char** argv)
                     double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
                     double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
+
                     if (fabs(carr_f - carr_bias0 - range_f) < REAL_BIAS_THRESH)
                     {
                         //carr_bias_cmp = bias_smth->next(carr_f - range_f);
-                        curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
-                        curr_carr_biases_num++;
+                        if (!IS_DUAL(prn))
+                        {
+                            curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
+                            curr_carr_biases_num++;
+                        }
+                        else
+                        {
+                            curr_carr_biases_dual[curr_carr_biases_dual_num] = carr_f - range_f;
+                            curr_carr_biases_dual_num++;
+                        }
                     }
                     else
                     {
@@ -1020,6 +1036,18 @@ int main(int argc, char** argv)
                 carr_bias_cmp_skip = 0;
             }
         }
+
+        // comp mean carr bias dual
+        if (1 && curr_carr_biases_dual_num)
+        {
+            carr_bias_dual_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases_dual, curr_carr_biases_dual_num);
+            if (fabs(carr_bias_dual_cmp - carr_bias_dual_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_dual_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
+            {
+                carr_bias_dual_cmp = bias_dual_smth->next(carr_bias_dual_pre_flt);
+                carr_bias_dual_cmp_skip = 0;
+            }
+        }
+
 
         if (fu_lag_startup)
         {
@@ -1074,14 +1102,15 @@ int main(int argc, char** argv)
             gns_syn.Flag_valid_word = valid;
 
             int prn = observables.PRN[n];
+            int isDual = IS_DUAL(prn);
 
             #if 0
                 #warning TEMP tylko pasmo 2
-                if (IS_DUAL(prn) == 0)
+                if (isDual == 0)
                     continue;
             #endif
 
-            if (IS_DUAL(prn))
+            if (isDual)
             {
                 //#warning TEMP tylko pasmo 1
                 //continue;
@@ -1150,8 +1179,18 @@ int main(int argc, char** argv)
                     if (fabs(carr_f - carr_bias0 - range_f) < 5000)
                     {
                         //carr_bias_cmp = bias_smth->next(carr_f - range_f);
-                        curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
-                        curr_carr_biases_num++;
+                        if (!isDual)
+                        {
+                            curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
+                            curr_carr_biases_num++;
+                        }
+                        else
+                        {
+                            curr_carr_biases_dual[curr_carr_biases_dual_num] = carr_f - range_f;
+                            curr_carr_biases_dual_num++;
+                        }
+
+
                     }
                     else
                     {
@@ -1173,7 +1212,8 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias_cmp;
+                    double abias = !isDual ? carr_bias_cmp : carr_bias_dual_cmp;
+                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * abias;
                 }
             }
 
