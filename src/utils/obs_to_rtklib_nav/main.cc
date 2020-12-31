@@ -55,9 +55,13 @@
 
 #define WRITE_OBS_CSV (1)
 
+// próg realnego biasu
+#define REAL_BIAS_THRESH (5000)
+
 // -- ad usuwanie odstających biasu częstotliwości
 // liczba kolejnych odstająych ogólnej średniej po której kolejne przestają być odstającymi
 #define CARR_BIAS_CMP_MAX_SKIP (5)
+
 // próg w Hz na odstających z ogólnej średniej biasu
 #define CARR_BIAS_OUT_THRESH (100)
 
@@ -982,7 +986,7 @@ int main(int argc, char** argv)
                     double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
                     double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
-                    if (fabs(carr_f - carr_bias0 - range_f) < 5000)
+                    if (fabs(carr_f - carr_bias0 - range_f) < REAL_BIAS_THRESH)
                     {
                         //carr_bias_cmp = bias_smth->next(carr_f - range_f);
                         curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
