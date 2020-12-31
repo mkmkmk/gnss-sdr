@@ -768,6 +768,9 @@ int main(int argc, char** argv)
     double carr_bias_pre_flt = 0;
     int carr_bias_cmp_skip = 0;
 
+    // usuwanie lagu, ile próbek w przyszłoś patrzeć
+    double future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
+
 #if 0
 #include "conf-inc-obso.c"
 #endif
@@ -958,7 +961,7 @@ int main(int argc, char** argv)
 
     int last_eph_update_tm = -1;
 
-    int fu_lag_startup = 75;
+    int fu_lag_startup = future_bias_lag;
 
     observables.restart();
     //while (observables.read_binary_obs())
