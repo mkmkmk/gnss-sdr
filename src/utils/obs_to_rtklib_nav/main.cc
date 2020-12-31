@@ -937,7 +937,7 @@ int main(int argc, char** argv)
                 double carr = fu_observables.Acc_carrier_phase_hz[n];
                 double range = fu_observables.Pseudorange_m[n];
                 double tm_dt = fu_observables.RX_time[n] - fu_prev_rxtime[n];
-                if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+                if (fu_prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
                 {
 
                     double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
@@ -956,7 +956,7 @@ int main(int argc, char** argv)
                 }
                 fu_prev_rxtime[n] = fu_observables.RX_time[n];
                 fu_prev_carr[n] = carr;
-                fu_prev_range[n] = fu_observables.Pseudorange_m[n];
+                fu_prev_range[n] = range;
             }
 
             if (fu_lag_startup)
