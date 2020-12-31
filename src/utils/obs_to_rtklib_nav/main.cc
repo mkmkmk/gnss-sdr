@@ -55,6 +55,13 @@
 
 #define WRITE_OBS_CSV (1)
 
+// -- ad usuwanie odstających biasu częstotliwości
+// liczba kolejnych odstająych ogólnej średniej po której kolejne przestają być odstającymi
+#define CARR_BIAS_CMP_MAX_SKIP (5)
+// próg w Hz na odstających z ogólnej średniej biasu
+#define CARR_BIAS_OUT_THRESH (100)
+
+
 #define LAMBDA_L1 ( SPEED_OF_LIGHT_M_S / 1540 / 1023000)
 #define LAMBDA_L5 ( SPEED_OF_LIGHT_M_S / 1150 / 1023000)
 #define LAMBDA_XX(IS_DUAL) ((IS_DUAL) ? LAMBDA_L5 : LAMBDA_L1)
@@ -678,6 +685,40 @@ void close_obs_csv(FILE **fcsv_ch, int chan_num)
 }
 
 
+double comp_carr_bias_pre_flt(double *curr_carr_biases, int curr_carr_biases_num)
+{
+    double carr_bias_pre_flt;
+
+    if (0)
+    {
+        std::vector<double> curr_carr_biases_v(curr_carr_biases, curr_carr_biases + curr_carr_biases_num);
+        std::sort(curr_carr_biases_v.begin(), curr_carr_biases_v.end());
+        carr_bias_pre_flt = curr_carr_biases_v[curr_carr_biases_num / 2];
+    }
+
+    double bsum0 = 0;
+    for (int ii = 0; ii < curr_carr_biases_num; ++ii)
+        bsum0 += curr_carr_biases[ii];
+    carr_bias_pre_flt = bsum0 / curr_carr_biases_num;
+
+    if (curr_carr_biases_num > 1)
+    {
+        double bsum1 = 0;
+        int num1 = 0;
+        for (int ii = 0; ii < curr_carr_biases_num; ++ii)
+        {
+            if (fabs(curr_carr_biases[ii] - bsum0) > CARR_BIAS_OUT_THRESH)
+                continue;
+            bsum1 += curr_carr_biases[ii];
+            num1++;
+        }
+        if (num1 != curr_carr_biases_num && num1 > 0)
+            carr_bias_pre_flt = bsum1 / num1;
+    }
+
+    return carr_bias_pre_flt;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -717,7 +758,8 @@ int main(int argc, char** argv)
     double carr_bias0 = configuration->property("obs_to_nav.carr_bias", 0.0);
     std::cout << "carr_bias = " << carr_bias0 << std::endl;
     double carr_bias_cmp = carr_bias0;
-
+    double carr_bias_pre_flt = 0;
+    int carr_bias_cmp_skip = 0;
 
 #if 0
 #include "conf-inc-obso.c"
@@ -853,7 +895,7 @@ int main(int argc, char** argv)
 
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]\n");
 
     FILE *resCsv = fopen((obs_filename + "_res.csv").c_str(), "w");
     fprintf(resCsv, "time");
@@ -909,13 +951,10 @@ int main(int argc, char** argv)
 
     int last_eph_update_tm = -1;
 
-
-    for (int kk = 0; kk < 125; ++kk)
-        fu_observables.read_binary_obs();
-
-    int fu_lag_startup = 125;
+    int fu_lag_startup = 75;
 
     observables.restart();
+    //while (observables.read_binary_obs())
     while (1)
     {
         double curr_carr_biases[obs_n_channels];
@@ -959,11 +998,23 @@ int main(int argc, char** argv)
                 fu_prev_range[n] = range;
             }
 
-            if (fu_lag_startup)
+        }
+
+        // comp mean carr bias
+        if (1 && curr_carr_biases_num)
+        {
+            carr_bias_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases, curr_carr_biases_num);
+            if (fabs(carr_bias_cmp - carr_bias_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
             {
-                fu_lag_startup--;
-                continue;
+                carr_bias_cmp = bias_smth->next(carr_bias_pre_flt);
+                carr_bias_cmp_skip = 0;
             }
+        }
+
+        if (fu_lag_startup)
+        {
+            fu_lag_startup--;
+            continue;
         }
 
         if (!observables.read_binary_obs())
@@ -1219,25 +1270,6 @@ int main(int argc, char** argv)
         if (!anyValid)
             continue;
 
-        // comp mean carr bias
-        if (1 && curr_carr_biases_num)
-        {
-            double bias_med = 0;
-            if (0)
-            {
-                std::vector<double> curr_carr_biases_v(curr_carr_biases, curr_carr_biases + curr_carr_biases_num);
-                std::sort(curr_carr_biases_v.begin(), curr_carr_biases_v.end());
-                bias_med = curr_carr_biases_v[curr_carr_biases_num / 2];
-            }
-            else
-            {
-                for (int ii = 0; ii < curr_carr_biases_num; ++ii)
-                    bias_med += curr_carr_biases[ii];
-            }
-            bias_med /= curr_carr_biases_num;
-            carr_bias_cmp = bias_smth->next(bias_med);
-        }
-
 
         if (time_epoch % decym)
             continue;
@@ -1398,7 +1430,7 @@ int main(int argc, char** argv)
         }
         fprintf(resCsv,"\n");
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0);
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt.get(), false);
