@@ -58,6 +58,9 @@
 // próg realnego biasu
 #define REAL_BIAS_THRESH (5000)
 
+// długoś uśredniania średniego biasu
+#define BIAS_SMOOTH_MEAN_N (250)
+
 // -- ad usuwanie odstających biasu częstotliwości
 // liczba kolejnych odstająych ogólnej średniej po której kolejne przestają być odstającymi
 #define CARR_BIAS_CMP_MAX_SKIP (5)
@@ -934,7 +937,7 @@ int main(int argc, char** argv)
 
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
-    auto bias_smth = std::make_shared<MovingAv<250>>();
+    auto bias_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
 
     std::shared_ptr<MovingAv<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingAv<50>> rng_smth[obs_n_channels];
