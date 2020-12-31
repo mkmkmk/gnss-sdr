@@ -1002,14 +1002,12 @@ int main(int argc, char** argv)
             if (!isGalileo)
             {
                 gns_syn.System = 'G';
-                gns_syn.Signal[0] = '1';
-                gns_syn.Signal[1] = 'C';
+                memcpy(gns_syn.Signal, "1C", 2);
             }
             else
             {
                 gns_syn.System = 'E';
-                gns_syn.Signal[0] = '1';
-                gns_syn.Signal[1] = 'B';
+                memcpy(gns_syn.Signal, "1B", 2);
             }
 
             gns_syn.Flag_valid_word = valid;
@@ -1034,13 +1032,13 @@ int main(int argc, char** argv)
 
                 if (!isGalileo)
                 {
-                    gns_syn.Signal[0] = 'L';
-                    gns_syn.Signal[1] = '5';
+                    gns_syn.System = 'G';
+                    memcpy(gns_syn.Signal, "L5", 2);
                 }
                 else
                 {
-                    gns_syn.Signal[0] = '5';
-                    gns_syn.Signal[1] = 'X';
+                    gns_syn.System = 'E';
+                    memcpy(gns_syn.Signal, "5X", 2);
                 }
 
                 //std::cout << "DUAL SEC OBS TEMP SKIP  " << std::endl;
@@ -1101,6 +1099,7 @@ int main(int argc, char** argv)
                     }
                 }
             }
+
             {
 
                 //if (carr_rx0 < 0)
