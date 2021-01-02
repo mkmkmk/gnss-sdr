@@ -765,11 +765,11 @@ int main(int argc, char** argv)
     double carr_bias0 = configuration->property("obs_to_nav.carr_bias", 0.0);
     std::cout << "carr_bias = " << carr_bias0 << std::endl;
     double carr_bias_cmp = carr_bias0;
-    double carr_bias_dual_cmp = carr_bias0;
+    double carr_bias2_cmp = carr_bias0;
     double carr_bias_pre_flt = 0;
-    double carr_bias_dual_pre_flt = 0;
+    double carr_bias2_pre_ft = 0;
     int carr_bias_cmp_skip = 0;
-    int carr_bias_dual_cmp_skip = 0;
+    int carr_bias2_cmp_skip = 0;
 
     // usuwanie lagu, ile próbek w przyszłoś patrzeć
     double future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
@@ -944,7 +944,7 @@ int main(int argc, char** argv)
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
     auto bias_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
-    auto bias_dual_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
+    auto bias2_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
 
     std::shared_ptr<MovingAv<50>> carr_smth[obs_n_channels];
     std::shared_ptr<MovingAv<50>> rng_smth[obs_n_channels];
@@ -974,8 +974,8 @@ int main(int argc, char** argv)
         double curr_carr_biases[obs_n_channels];
         int curr_carr_biases_num = 0;
 
-        double curr_carr_biases_dual[obs_n_channels];
-        int curr_carr_biases_dual_num = 0;
+        double curr_carr_biases2[obs_n_channels];
+        int curr_carr_biases2_num = 0;
 
         if (fu_observables.read_binary_obs())
         {
@@ -1010,8 +1010,8 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            curr_carr_biases_dual[curr_carr_biases_dual_num] = carr_f - range_f;
-                            curr_carr_biases_dual_num++;
+                            curr_carr_biases2[curr_carr_biases2_num] = carr_f - range_f;
+                            curr_carr_biases2_num++;
                         }
                     }
                     else
@@ -1038,13 +1038,13 @@ int main(int argc, char** argv)
         }
 
         // comp mean carr bias dual
-        if (1 && curr_carr_biases_dual_num)
+        if (1 && curr_carr_biases2_num)
         {
-            carr_bias_dual_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases_dual, curr_carr_biases_dual_num);
-            if (fabs(carr_bias_dual_cmp - carr_bias_dual_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_dual_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
+            carr_bias2_pre_ft = comp_carr_bias_pre_flt(curr_carr_biases2, curr_carr_biases2_num);
+            if (fabs(carr_bias2_cmp - carr_bias2_pre_ft) < CARR_BIAS_OUT_THRESH || ++carr_bias2_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
             {
-                carr_bias_dual_cmp = bias_dual_smth->next(carr_bias_dual_pre_flt);
-                carr_bias_dual_cmp_skip = 0;
+                carr_bias2_cmp = bias2_smth->next(carr_bias2_pre_ft);
+                carr_bias2_cmp_skip = 0;
             }
         }
 
@@ -1186,8 +1186,8 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            curr_carr_biases_dual[curr_carr_biases_dual_num] = carr_f - range_f;
-                            curr_carr_biases_dual_num++;
+                            curr_carr_biases2[curr_carr_biases2_num] = carr_f - range_f;
+                            curr_carr_biases2_num++;
                         }
 
 
@@ -1212,7 +1212,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    double abias = !isDual ? carr_bias_cmp : carr_bias_dual_cmp;
+                    double abias = !isDual ? carr_bias_cmp : carr_bias2_cmp;
                     carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * abias;
                 }
             }
@@ -1479,7 +1479,7 @@ int main(int argc, char** argv)
         }
         fprintf(resCsv,"\n");
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0, carr_bias_dual_cmp);
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0, carr_bias2_cmp);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt.get(), false);
