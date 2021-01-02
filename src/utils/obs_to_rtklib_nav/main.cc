@@ -774,6 +774,8 @@ int main(int argc, char** argv)
     // usuwanie lagu, ile próbek w przyszłoś patrzeć
     double future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
 
+    int rem_comp_bias = configuration->property("obs_to_nav.rem_comp_bias", 1);
+
 #if 0
 #include "conf-inc-obso.c"
 #endif
@@ -1027,7 +1029,7 @@ int main(int argc, char** argv)
         }
 
         // comp mean carr bias
-        if (1 && curr_carr_biases_num)
+        if (rem_comp_bias && curr_carr_biases_num)
         {
             carr_bias_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases, curr_carr_biases_num);
             if (fabs(carr_bias_cmp - carr_bias_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
@@ -1038,7 +1040,7 @@ int main(int argc, char** argv)
         }
 
         // comp mean carr bias dual
-        if (1 && curr_carr_biases2_num)
+        if (rem_comp_bias && curr_carr_biases2_num)
         {
             carr_bias2_pre_ft = comp_carr_bias_pre_flt(curr_carr_biases2, curr_carr_biases2_num);
             if (fabs(carr_bias2_cmp - carr_bias2_pre_ft) < CARR_BIAS_OUT_THRESH || ++carr_bias2_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
