@@ -908,7 +908,7 @@ int main(int argc, char** argv)
 
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]; bias2[Hz]\n");
 
     FILE *resCsv = fopen((obs_filename + "_res.csv").c_str(), "w");
     fprintf(resCsv, "time");
@@ -1479,7 +1479,7 @@ int main(int argc, char** argv)
         }
         fprintf(resCsv,"\n");
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0);
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0, carr_bias_dual_cmp);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt.get(), false);
