@@ -772,7 +772,7 @@ int main(int argc, char** argv)
     int carr_bias2_cmp_skip = 0;
 
     // usuwanie lagu, ile próbek w przyszłoś patrzeć
-    double future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
+    int future_bias_lag = configuration->property("obs_to_nav.future_bias_lag", 75);
 
     int rem_comp_bias = configuration->property("obs_to_nav.rem_comp_bias", 1);
 
