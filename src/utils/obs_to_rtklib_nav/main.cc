@@ -1088,6 +1088,9 @@ int main(int argc, char** argv)
 
             Gnss_Synchro gns_syn;
 
+            // lock lost indicator
+            bool lli = false;
+
             if (!isGalileo)
             {
                 gns_syn.System = 'G';
@@ -1189,8 +1192,6 @@ int main(int argc, char** argv)
                             curr_carr_biases2[curr_carr_biases2_num] = carr_f - range_f;
                             curr_carr_biases2_num++;
                         }
-
-
                     }
                     else
                     {
@@ -1198,6 +1199,22 @@ int main(int argc, char** argv)
                     }
                 }
             }
+
+            // wykrywanie dużego biasu range/carr
+            if (1)
+            {
+                double range = observables.Pseudorange_m[n];
+                double tm_dt = observables.RX_time[n] - prev_rxtime[n];
+                if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+                {
+                    int prn = observables.PRN[n];
+                    double carr_f = -(carr - prev_carr[n]) / tm_dt;
+                    double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
+                    if (fabs(carr_f - carr_bias0 - range_f) >= REAL_BIAS_THRESH)
+                        lli = true;
+                }
+            }
+
 
             {
 
@@ -1209,6 +1226,7 @@ int main(int argc, char** argv)
                     carr_acc[n] = -carr;
                     // carr_acc[n] += (observables.RX_time[n] - carr_rx0) * carr_bias;
                     printf("-- %g rst carr sat %d\n", observables.RX_time[n], (int)observables.PRN[n]);
+                    lli = true;
                 }
                 else
                 {
@@ -1242,6 +1260,13 @@ int main(int argc, char** argv)
             //gns_syn.Pseudorange_m = (int)(observables.Pseudorange_m[n] * 1000) / 1000.0;
 
 #endif
+
+            // gdy CN0_dB_hz ==-1 to LLI
+            if (lli)
+            {
+                gns_syn.CN0_dB_hz = -1;
+                printf("\n*** LLI ***\n\n");
+            }
 
             #if 0
             #warning dbg
