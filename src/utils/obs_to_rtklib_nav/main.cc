@@ -1177,7 +1177,7 @@ int main(int argc, char** argv)
                     double carr_f = -(carr - prev_carr[n]) / tm_dt;
                     double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
-                    if (fabs(carr_f - carr_bias0 - range_f) < 5000)
+                    if (fabs(carr_f - carr_bias0 - range_f) < REAL_BIAS_THRESH)
                     {
                         //carr_bias_cmp = bias_smth->next(carr_f - range_f);
                         if (!isDual)
