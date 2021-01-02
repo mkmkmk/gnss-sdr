@@ -928,20 +928,19 @@ int main(int argc, char** argv)
 
     FILE *fcsv_ch[obs_n_channels];
 
-    double prev_csv_carr[obs_n_channels];
-    double prev_csv_rg[obs_n_channels];
-    double prev_csv_tm[obs_n_channels];
+    double prev_csv_carr[obs_n_channels] = {0};
+    double prev_csv_rg[obs_n_channels] = {0};
+    double prev_csv_tm[obs_n_channels] = {0};
 
-    double carr_acc[obs_n_channels];
+    double carr_acc[obs_n_channels] = {0};
 
-    double prev_rxtime[obs_n_channels];
-    double prev_carr[obs_n_channels];
-    double prev_range[obs_n_channels];
+    double prev_rxtime[obs_n_channels] = {0};
+    double prev_carr[obs_n_channels] = {0};
+    double prev_range[obs_n_channels] = {0};
 
-    double fu_prev_rxtime[obs_n_channels];
-    double fu_prev_carr[obs_n_channels];
-    double fu_prev_range[obs_n_channels];
-
+    double fu_prev_rxtime[obs_n_channels] = {0};
+    double fu_prev_carr[obs_n_channels] = {0};
+    double fu_prev_range[obs_n_channels] = {0};
 
     std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
@@ -956,9 +955,6 @@ int main(int argc, char** argv)
         carr_smth[i] = std::make_shared<MovingAv<50>>();
         rng_smth[i] = std::make_shared<MovingAv<50>>();
         rx_smth[i] = std::make_shared<MovingAv<50>>();
-        prev_carr[i] = 0;
-        prev_rxtime[i] = 0;
-        prev_range[i] = 0;
         bias_csv_smth[i] = std::make_shared<MovingAv<50>>();
     }
 
