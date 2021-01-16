@@ -811,9 +811,7 @@ int main(int argc, char** argv)
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
     //                           save_to_mat, rtk));
 
-    std::shared_ptr<Rtklib_Solver> d_ls_pvt = std::make_shared<Rtklib_Solver>(rtk, obs_n_channels, dump_filename, flag_dump_to_file, save_to_mat);
-
-
+    auto d_ls_pvt = std::make_shared<Rtklib_Solver>(rtk, obs_n_channels, dump_filename, flag_dump_to_file, save_to_mat);
 
     d_ls_pvt->set_averaging_depth(1);
 
