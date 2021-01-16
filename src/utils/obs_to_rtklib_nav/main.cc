@@ -487,7 +487,7 @@ rtk_t configure_rtklib_options(std::shared_ptr<FileConfiguration> configuration)
 }
 
 
-std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int tow)
+std::map<int, Gps_Ephemeris> load_gps_ephemeris(std::string eph_xml_filename, int tow)
 {
     std::map<int, Gps_Ephemeris> gps_ephemeris_map;
     Gnss_Sdr_Supl_Client supl_client;
@@ -531,6 +531,49 @@ std::map<int, Gps_Ephemeris> load_ephemeris(std::string eph_xml_filename, int to
     return gps_ephemeris_map;
 }
 
+std::map<int, Galileo_Ephemeris> load_gal_ephemeris(std::string eph_xml_filename, int tow)
+{
+    std::map<int, Galileo_Ephemeris> ephemeris_map;
+    Gnss_Sdr_Supl_Client supl_client;
+
+    std::cout << "SUPL: Try read GALILEO ephemeris from XML file " << eph_xml_filename << std::endl;
+    if (supl_client.load_gal_ephemeris_xml(eph_xml_filename) == true)
+    {
+        //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
+        for (auto eph_iter = supl_client.gal_ephemeris_map.cbegin(); eph_iter != supl_client.gal_ephemeris_map.cend(); eph_iter++)
+        {
+            //int prn = gps_eph_iter->first;
+            int prn = eph_iter->second.i_satellite_PRN;
+            int toe = eph_iter->second.t0e_1;
+            int week = eph_iter->second.WN_5;
+
+            //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
+            //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
+            //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
+            if (tow > 0)
+            {
+                if (tow < toe || (ephemeris_map.count(prn) && ephemeris_map[prn].t0e_1 > toe))
+                {
+                    //std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
+                    continue;
+                }
+            }
+            //int min = -1;
+            // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
+
+            std::cout << "SUPL: Read XML Ephemeris for GALILEO SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
+
+            auto tmp_obj = std::make_shared<Galileo_Ephemeris>(eph_iter->second);
+            // update/insert new ephemeris record to the global ephemeris map
+            ephemeris_map[prn] = *tmp_obj;
+        }
+    }
+    else
+    {
+        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
+    }
+    return ephemeris_map;
+}
 
 
 void save_ephemeris_csv(std::string eph_xml_filename)
@@ -727,6 +770,54 @@ double comp_carr_bias_pre_flt(double *curr_carr_biases, int curr_carr_biases_num
 }
 
 
+void check_gps_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map, std::map<int, Gps_Ephemeris>& gps_ephemeris_map, double rx_time)
+{
+    for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+    {
+        auto fnd = gps_ephemeris_map.find(it->second.PRN);
+        if (fnd == gps_ephemeris_map.end())
+        {
+            std::cout << "*** MISSING EPH FOR PRN " << it->second.PRN << std::endl;
+            //continue;
+        }
+    }
+    for (auto it = gps_ephemeris_map.cbegin(); it != gps_ephemeris_map.cend(); it++)
+    {
+        double toe = it->second.d_Toe;
+        if (rx_time - toe > 7200)
+        {
+            std::cout << "*** OLD Ephemeris for GPS SV " << it->second.i_satellite_PRN << " TOW: " << rx_time << " TOE: " << toe << " DIFF: " << (rx_time - toe) << " s "
+                    << std::endl;
+        }
+        break;
+    }
+}
+
+
+void check_gal_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map,  std::map<int, Galileo_Ephemeris>& galileo_ephemeris_map, double rx_time)
+{
+    for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
+    {
+        auto fnd = galileo_ephemeris_map.find(it->second.PRN);
+        if (fnd == galileo_ephemeris_map.end())
+        {
+            std::cout << "*** MISSING EPH FOR PRN " << it->second.PRN << std::endl;
+            //continue;
+        }
+    }
+    for (auto it = galileo_ephemeris_map.cbegin(); it != galileo_ephemeris_map.cend(); it++)
+    {
+        double toe = it->second.t0e_1;
+        if (rx_time - toe > 7200)
+        {
+            std::cout << "*** OLD Ephemeris for GPS SV " << it->second.i_satellite_PRN << " TOW: " << rx_time << " TOE: " << toe << " DIFF: " << (rx_time - toe) << " s "
+                    << std::endl;
+        }
+        break;
+    }
+}
+
+
 int main(int argc, char** argv)
 {
 
@@ -779,15 +870,12 @@ int main(int argc, char** argv)
 #if 0
 #include "conf-inc-obso.c"
 #endif
-    
-    save_ephemeris_csv(eph_xml_filename);
 
     std::string dump_filename = ".rtklib_solver_dump.dat";
     bool flag_dump_to_file = false;
     bool save_to_mat = false;
 
     rtk_t rtk = configure_rtklib_options(configuration);
-
 
     int isGalileo = 0;
 
@@ -806,6 +894,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    if (!isGalileo)
+        save_ephemeris_csv(eph_xml_filename);
 
     //std::unique_ptr<Rtklib_Solver> d_ls_pvt(
     //        new Rtklib_Solver( nchannels, dump_filename, flag_dump_to_file,
@@ -991,7 +1081,6 @@ int main(int argc, char** argv)
                 double tm_dt = fu_observables.RX_time[n] - fu_prev_rxtime[n];
                 if (fu_prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
                 {
-
                     double carr_f = -(carr - fu_prev_carr[n]) / tm_dt;
                     double range_f = -(range - fu_prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
 
@@ -1043,7 +1132,6 @@ int main(int argc, char** argv)
                 carr_bias2_cmp_skip = 0;
             }
         }
-
 
         if (fu_lag_startup)
         {
@@ -1353,15 +1441,28 @@ int main(int argc, char** argv)
 
         if (last_eph_update_tm < 0 || rx_time - last_eph_update_tm > 30)
         {
-            d_ls_pvt->gps_ephemeris_map = load_ephemeris(eph_xml_filename, rx_time);
-            last_eph_update_tm = rx_time;
-            if (d_ls_pvt->gps_ephemeris_map.size() == 0)
+            if (!isGalileo)
             {
-                std::cout << "NO EPHEMERIS FOUND!" << std::endl;
-                break;
+                d_ls_pvt->gps_ephemeris_map = load_gps_ephemeris(eph_xml_filename, rx_time);
+                if (d_ls_pvt->gps_ephemeris_map.size() == 0)
+                {
+                    std::cout << "NO EPHEMERIS FOUND!" << std::endl;
+                    break;
+                }
+                last_eph_update_tm = rx_time;
+            }
+            else
+            {
+                d_ls_pvt->galileo_ephemeris_map = load_gal_ephemeris(eph_xml_filename, rx_time);
+                if (d_ls_pvt->galileo_ephemeris_map.size() == 0)
+                {
+                    std::cout << "NO EPHEMERIS FOUND!" << std::endl;
+                    //break; //początkowe TOW mogą być błędne
+                }
+                else
+                    last_eph_update_tm = rx_time;
             }
         }
-
 
 #if 0
 #warning MOD TX TIME
@@ -1387,30 +1488,10 @@ int main(int argc, char** argv)
             }
         }
 
-
-        for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
-        {
-            auto fnd = d_ls_pvt->gps_ephemeris_map.find(it->second.PRN);
-            if (fnd == d_ls_pvt->gps_ephemeris_map.end())
-            {
-                std::cout << "*** MISSING EPH FOR PRN " << it->second.PRN << std::endl;
-                //continue;
-            }
-
-        }
-        for (auto it = d_ls_pvt->gps_ephemeris_map.cbegin(); it != d_ls_pvt->gps_ephemeris_map.cend(); it++)
-        {
-            double toe = it->second.d_Toe;
-            if (rx_time - toe > 7200)
-            {
-                std::cout << "*** OLD Ephemeris for GPS SV "
-                          << it->second.i_satellite_PRN << " TOW: "
-                          << rx_time << " TOE: " << toe
-                          << " DIFF: " << (rx_time - toe) << " s "
-                          << std::endl;
-            }
-            break;
-        }
+        if (!isGalileo)
+            check_gps_eph(gnss_synchro_map, d_ls_pvt->gps_ephemeris_map, rx_time);
+        else
+            check_gal_eph(gnss_synchro_map, d_ls_pvt->galileo_ephemeris_map, rx_time);
 
         if (!d_ls_pvt->get_PVT(gnss_synchro_map, false))
         {
