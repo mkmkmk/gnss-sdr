@@ -114,9 +114,8 @@ obsd_t insert_obs_to_rtklib(obsd_t& rtklib_obs, const Gnss_Synchro& gnss_synchro
     if (gnss_synchro.System == 'E')
         {
             //rtklib_obs.time = gst2time(week, gnss_synchro.RX_time);
-            // MK-MOD week jest wg GPS (nie wiem czemu)
+            // todo MK-MOD week jest wg GPS (nie wiem czemu)
             rtklib_obs.time = gpst2time(week, gnss_synchro.RX_time);
-
         }
     else
         {
@@ -190,8 +189,12 @@ eph_t eph_to_rtklib(const Galileo_Ephemeris& gal_eph, bool pre_2009_file)
     rtklib_sat.e = gal_eph.e_1;
     rtklib_sat.Adot = 0;  // only in CNAV;
     rtklib_sat.ndot = 0;  // only in CNAV;
+    //rtklib_sat.week = gal_eph.WN_5 + 1024; /* week of tow in GPS (not mod-1024) week scale */
+    //rtklib_sat.week = gal_eph.WN_5; /* week of tow in GPS (not mod-1024) week scale */
+    // dziwne że w Galileo week GPS
+    //todo MK-MOD
+    rtklib_sat.week = adjgpsweek(gal_eph.WN_5, pre_2009_file); /* week of tow */
 
-    rtklib_sat.week = gal_eph.WN_5 + 1024; /* week of tow in GPS (not mod-1024) week scale */
     rtklib_sat.cic = gal_eph.C_ic_4;
     rtklib_sat.cis = gal_eph.C_is_4;
     rtklib_sat.cuc = gal_eph.C_uc_3;
