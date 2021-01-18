@@ -113,7 +113,10 @@ obsd_t insert_obs_to_rtklib(obsd_t& rtklib_obs, const Gnss_Synchro& gnss_synchro
     //
     if (gnss_synchro.System == 'E')
         {
-            rtklib_obs.time = gst2time(week, gnss_synchro.RX_time);
+            //rtklib_obs.time = gst2time(week, gnss_synchro.RX_time);
+            // MK-MOD week jest wg GPS (nie wiem czemu)
+            rtklib_obs.time = gpst2time(week, gnss_synchro.RX_time);
+
         }
     else
         {
