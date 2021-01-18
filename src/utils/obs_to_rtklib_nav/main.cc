@@ -907,13 +907,14 @@ int main(int argc, char** argv)
 
     Gnss_Sdr_Supl_Client supl_client;
 
-    if(supl_client.load_iono_xml(iono_xml_filename) == true)
+    if (supl_client.load_iono_xml(iono_xml_filename) == true)
     {
         supl_client.gps_iono.valid = true;
         d_ls_pvt->gps_iono = supl_client.gps_iono;
         std::cout << "SUPL: Read XML IONO loaded" << std::endl;
 
-    }else
+    }
+    else
     {
         std::cout << "ERROR: SUPL client error reading IONO XML" << std::endl;
     }
