@@ -485,7 +485,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                         // convert ephemeris from GNSS-SDR class to RTKLIB structure
                                         //eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
                                         if (!MK_MOD_GPS_AS_GALILEO)
-                                            eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                            eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second, this->is_pre_2009());
                                         else
                                         {
                                             eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second, this->is_pre_2009());
@@ -546,7 +546,7 @@ bool Rtklib_Solver::get_PVT(const std::map<int, Gnss_Synchro> &gnss_observables_
                                                 // convert ephemeris from GNSS-SDR class to RTKLIB structure
 
                                                 if (!MK_MOD_GPS_AS_GALILEO)
-                                                    eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second);
+                                                    eph_data[valid_obs] = eph_to_rtklib(galileo_ephemeris_iter->second, this->is_pre_2009());
                                                 else
                                                 {
                                                     eph_data[valid_obs] = eph_to_rtklib(gps_ephemeris_iter->second, this->is_pre_2009());

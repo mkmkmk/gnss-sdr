@@ -967,7 +967,7 @@ std::vector<std::pair<int, Gnss_Satellite>> ControlThread::get_visible_sats(time
     const std::map<int, Galileo_Ephemeris> gal_eph_map = pvt_ptr->get_galileo_ephemeris();
     for (auto &it : gal_eph_map)
         {
-            const eph_t rtklib_eph = eph_to_rtklib(it.second);
+            const eph_t rtklib_eph = eph_to_rtklib(it.second, pre_2009_file_);
             std::array<double, 3> r_sat{};
             double clock_bias_s;
             double sat_pos_variance_m2;

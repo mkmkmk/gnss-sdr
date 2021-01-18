@@ -32,7 +32,7 @@ class Gps_Almanac;
 class Gps_CNAV_Ephemeris;
 class Gps_Ephemeris;
 
-eph_t eph_to_rtklib(const Galileo_Ephemeris& gal_eph);
+eph_t eph_to_rtklib(const Galileo_Ephemeris& gal_eph, bool pre_2009_file);
 eph_t eph_to_rtklib(const Gps_Ephemeris& gps_eph, bool pre_2009_file);
 eph_t eph_to_rtklib(const Gps_CNAV_Ephemeris& gps_cnav_eph);
 eph_t eph_to_rtklib(const Beidou_Dnav_Ephemeris& bei_eph);
