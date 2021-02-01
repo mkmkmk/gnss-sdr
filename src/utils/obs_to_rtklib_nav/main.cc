@@ -552,16 +552,20 @@ std::map<int, Galileo_Ephemeris> load_gal_ephemeris(std::string eph_xml_filename
             //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
             if (tow > 0)
             {
-                if (tow < toe || (ephemeris_map.count(prn) && ephemeris_map[prn].t0e_1 > toe))
+                //if (tow < toe || (ephemeris_map.count(prn) && ephemeris_map[prn].t0e_1 > toe))
+                //if(tow < toe || (ephemeris_map.count(prn) && tow > toe + MAXDTOE_GAL))
+                if(tow < toe || (tow > toe + MAXDTOE_GAL))
                 {
-                    //std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
+                    //std::cout << "SKIP EPH PRN: " << prn << " TOW: " << tow << " TOE: " << toe << " week: " << week << std::endl;
                     continue;
                 }
             }
             //int min = -1;
             // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
 
-            std::cout << "SUPL: Read XML Ephemeris for GALILEO SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
+            std::cout << "SUPL: Read XML Ephemeris for GALILEO SV " << prn << " TOW: " << tow << " TOE: "<< toe << " week: " << week << std::endl;
+            if (tow > toe + MAXDTOE_GAL)
+                std::cout << "\t(ADDED OLD EPH)" << std::endl;
 
             auto tmp_obj = std::make_shared<Galileo_Ephemeris>(eph_iter->second);
             // update/insert new ephemeris record to the global ephemeris map
