@@ -580,7 +580,11 @@ int valsol(const double *azel, const int *vsat, int n,
     if (nv > nx && vv > CHISQR[nv - nx - 1])
         {
             std::snprintf(msg, MAXSOLBUF, "chi-square error nv=%d vv=%.1f cs=%.1f", nv, vv, CHISQR[nv - nx - 1]);
-            return 0;
+            printf("chi-square error nv=%d vv=%.1f cs=%.1f \n", nv, vv, CHISQR[nv - nx - 1]);
+            if (1)
+                printf("chi-square validation DISABLED \n");
+            else
+                return 0;
         }
     /* large gdop check */
     for (i = ns = 0; i < n; i++)
