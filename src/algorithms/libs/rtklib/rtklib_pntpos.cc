@@ -300,6 +300,8 @@ double prange(const obsd_t *obs, const nav_t *nav, const double *azel,
                     P1 += P1_C1;
                     P2 += P2_C2;
                     PC = (gamma_ * P1 - P2) / (gamma_ - 1.0);
+                    if (1) //MK-MOD
+                        PC = P1 + P1_P2;
                 }
         }
     if (opt->sateph == EPHOPT_SBAS)
