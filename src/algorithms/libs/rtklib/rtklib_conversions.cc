@@ -268,7 +268,9 @@ eph_t eph_to_rtklib(const Gps_Ephemeris& gps_eph, bool pre_2009_file)
     rtklib_sat.tgd[3] = 0.0;
     rtklib_sat.toes = gps_eph.d_Toe;
     rtklib_sat.toc = gpst2time(rtklib_sat.week, gps_eph.d_Toc);
-    rtklib_sat.ttr = gpst2time(rtklib_sat.week, gps_eph.d_TOW);
+    // MK-MOD
+    //rtklib_sat.ttr = gpst2time(rtklib_sat.week, gps_eph.d_TOW);
+    rtklib_sat.ttr = gpst2time(rtklib_sat.week, gps_eph.d_Toe);
 
     /* adjustment for week handover */
     double tow;
