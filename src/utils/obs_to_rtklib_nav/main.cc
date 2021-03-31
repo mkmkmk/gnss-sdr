@@ -1117,7 +1117,7 @@ int main(int argc, char** argv)
         }
 
         // comp mean carr bias
-        if (rem_comp_bias && curr_carr_biases_num)
+        if (/*rem_comp_bias &&*/ curr_carr_biases_num)
         {
             carr_bias_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases, curr_carr_biases_num);
             if (fabs(carr_bias_cmp - carr_bias_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
@@ -1128,7 +1128,7 @@ int main(int argc, char** argv)
         }
 
         // comp mean carr bias dual
-        if (rem_comp_bias && curr_carr_biases2_num)
+        if (/*rem_comp_bias &&*/ curr_carr_biases2_num)
         {
             carr_bias2_pre_ft = comp_carr_bias_pre_flt(curr_carr_biases2, curr_carr_biases2_num);
             if (fabs(carr_bias2_cmp - carr_bias2_pre_ft) < CARR_BIAS_OUT_THRESH || ++carr_bias2_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
@@ -1317,7 +1317,7 @@ int main(int argc, char** argv)
                     printf("-- %g rst carr sat %d\n", observables.RX_time[n], (int)observables.PRN[n]);
                     lli = true;
                 }
-                else
+                else if (rem_comp_bias)
                 {
                     double abias = !isDual ? carr_bias_cmp : carr_bias2_cmp;
                     carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * abias;
