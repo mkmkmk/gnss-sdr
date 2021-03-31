@@ -788,7 +788,7 @@ void check_gps_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map, std::map
     for (auto it = gps_ephemeris_map.cbegin(); it != gps_ephemeris_map.cend(); it++)
     {
         double toe = it->second.d_Toe;
-        if (rx_time - toe > 7200)
+        if (rx_time - toe > MAXDTOE + 1)
         {
             std::cout << "*** OLD Ephemeris for GPS SV " << it->second.i_satellite_PRN << " TOW: " << rx_time << " TOE: " << toe << " DIFF: " << (rx_time - toe) << " s "
                     << std::endl;
@@ -812,7 +812,7 @@ void check_gal_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map,  std::ma
     for (auto it = galileo_ephemeris_map.cbegin(); it != galileo_ephemeris_map.cend(); it++)
     {
         double toe = it->second.t0e_1;
-        if (rx_time - toe > 7200)
+        if (rx_time - toe > MAXDTOE_GAL + 1)
         {
             std::cout << "*** OLD Ephemeris for GPS SV " << it->second.i_satellite_PRN << " TOW: " << rx_time << " TOE: " << toe << " DIFF: " << (rx_time - toe) << " s "
                     << std::endl;
