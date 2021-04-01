@@ -487,14 +487,10 @@ rtk_t configure_rtklib_options(std::shared_ptr<FileConfiguration> configuration)
 }
 
 
-std::map<int, Gps_Ephemeris> load_gps_ephemeris(std::string eph_xml_filename, int tow)
+std::map<int, Gps_Ephemeris> load_gps_ephemeris(Gnss_Sdr_Supl_Client supl_client, int tow)
 {
     std::map<int, Gps_Ephemeris> gps_ephemeris_map;
-    Gnss_Sdr_Supl_Client supl_client;
 
-    std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
-    if (supl_client.load_ephemeris_xml(eph_xml_filename) == true)
-    {
         //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
         for (auto gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
         {
@@ -523,22 +519,13 @@ std::map<int, Gps_Ephemeris> load_gps_ephemeris(std::string eph_xml_filename, in
             // update/insert new ephemeris record to the global ephemeris map
             gps_ephemeris_map[prn] = *tmp_obj;
         }
-    }
-    else
-    {
-        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
-    }
     return gps_ephemeris_map;
 }
 
-std::map<int, Galileo_Ephemeris> load_gal_ephemeris(std::string eph_xml_filename, int tow)
+std::map<int, Galileo_Ephemeris> load_gal_ephemeris(Gnss_Sdr_Supl_Client supl_client, int tow)
 {
     std::map<int, Galileo_Ephemeris> ephemeris_map;
-    Gnss_Sdr_Supl_Client supl_client;
 
-    std::cout << "SUPL: Try read GALILEO ephemeris from XML file " << eph_xml_filename << std::endl;
-    if (supl_client.load_gal_ephemeris_xml(eph_xml_filename) == true)
-    {
         //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
         for (auto eph_iter = supl_client.gal_ephemeris_map.cbegin(); eph_iter != supl_client.gal_ephemeris_map.cend(); eph_iter++)
         {
@@ -571,11 +558,6 @@ std::map<int, Galileo_Ephemeris> load_gal_ephemeris(std::string eph_xml_filename
             // update/insert new ephemeris record to the global ephemeris map
             ephemeris_map[prn] = *tmp_obj;
         }
-    }
-    else
-    {
-        std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
-    }
     return ephemeris_map;
 }
 
@@ -912,6 +894,25 @@ int main(int argc, char** argv)
     d_ls_pvt->set_averaging_depth(1);
 
     Gnss_Sdr_Supl_Client supl_client;
+
+    if (!isGalileo)
+    {
+        std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
+        if (!supl_client.load_ephemeris_xml(eph_xml_filename))
+        {
+            std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
+            return 1;
+        }
+    }
+    else
+    {
+        std::cout << "SUPL: Try read GALILEO ephemeris from XML file " << eph_xml_filename << std::endl;
+        if (!supl_client.load_gal_ephemeris_xml(eph_xml_filename))
+        {
+            std::cout << "ERROR: SUPL client error reading Ephemeris XML" << std::endl;
+            return 1;
+        }
+    }
 
     if (supl_client.load_iono_xml(iono_xml_filename) == true)
     {
@@ -1442,7 +1443,7 @@ int main(int argc, char** argv)
         {
             if (!isGalileo)
             {
-                d_ls_pvt->gps_ephemeris_map = load_gps_ephemeris(eph_xml_filename, rx_time);
+                d_ls_pvt->gps_ephemeris_map = load_gps_ephemeris(supl_client, rx_time);
                 if (d_ls_pvt->gps_ephemeris_map.size() == 0)
                 {
                     std::cout << "NO EPHEMERIS FOUND!" << std::endl;
@@ -1452,7 +1453,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                d_ls_pvt->galileo_ephemeris_map = load_gal_ephemeris(eph_xml_filename, rx_time);
+                d_ls_pvt->galileo_ephemeris_map = load_gal_ephemeris(supl_client, rx_time);
                 if (d_ls_pvt->galileo_ephemeris_map.size() == 0)
                 {
                     std::cout << "NO EPHEMERIS FOUND!" << std::endl;
