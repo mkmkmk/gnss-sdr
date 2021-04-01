@@ -492,33 +492,33 @@ std::map<int, Gps_Ephemeris> load_gps_ephemeris(Gnss_Sdr_Supl_Client supl_client
     std::map<int, Gps_Ephemeris> gps_ephemeris_map;
 
         //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
-        for (auto gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
+    for (auto gps_eph_iter = supl_client.gps_ephemeris_map.cbegin(); gps_eph_iter != supl_client.gps_ephemeris_map.cend(); gps_eph_iter++)
+    {
+        //int prn = gps_eph_iter->first;
+        int prn = gps_eph_iter->second.i_satellite_PRN;
+        int toe = gps_eph_iter->second.d_Toe;
+        int week = gps_eph_iter->second.i_GPS_week;
+
+        //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
+        //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
+        //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
+        if (tow > 0)
         {
-            //int prn = gps_eph_iter->first;
-            int prn = gps_eph_iter->second.i_satellite_PRN;
-            int toe = gps_eph_iter->second.d_Toe;
-            int week = gps_eph_iter->second.i_GPS_week;
-
-            //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
-            //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
-            //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
-            if (tow > 0)
+            if (tow < toe || (gps_ephemeris_map.count(prn) && gps_ephemeris_map[prn].d_Toe > toe))
             {
-                if (tow < toe || (gps_ephemeris_map.count(prn) && gps_ephemeris_map[prn].d_Toe > toe))
-                {
-                    //std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
-                    continue;
-                }
+                //std::cout << "SKIP EPH PRN: " << prn << " TOE: " << toe << " week: " << week << std::endl;
+                continue;
             }
-            //int min = -1;
-            // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
-
-            std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
-
-            std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
-            // update/insert new ephemeris record to the global ephemeris map
-            gps_ephemeris_map[prn] = *tmp_obj;
         }
+        //int min = -1;
+        // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
+
+        std::cout << "SUPL: Read XML Ephemeris for GPS SV " << prn << " TOE: "<< toe << " week: " << week << std::endl;
+
+        std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(gps_eph_iter->second);
+        // update/insert new ephemeris record to the global ephemeris map
+        gps_ephemeris_map[prn] = *tmp_obj;
+    }
     return gps_ephemeris_map;
 }
 
@@ -527,37 +527,37 @@ std::map<int, Galileo_Ephemeris> load_gal_ephemeris(Gnss_Sdr_Supl_Client supl_cl
     std::map<int, Galileo_Ephemeris> ephemeris_map;
 
         //std::map<int, Gps_Ephemeris>::const_iterator gps_eph_iter;
-        for (auto eph_iter = supl_client.gal_ephemeris_map.cbegin(); eph_iter != supl_client.gal_ephemeris_map.cend(); eph_iter++)
+    for (auto eph_iter = supl_client.gal_ephemeris_map.cbegin(); eph_iter != supl_client.gal_ephemeris_map.cend(); eph_iter++)
+    {
+        //int prn = gps_eph_iter->first;
+        int prn = eph_iter->second.i_satellite_PRN;
+        int toe = eph_iter->second.t0e_1;
+        int week = eph_iter->second.WN_5;
+
+        //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
+        //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
+        //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
+        if (tow > 0)
         {
-            //int prn = gps_eph_iter->first;
-            int prn = eph_iter->second.i_satellite_PRN;
-            int toe = eph_iter->second.t0e_1;
-            int week = eph_iter->second.WN_5;
-
-            //if (find_toe > 0 && gps_eph_iter->second.d_Toe != find_toe)
-            //TODO trzeba będzie jakoś na bieżąco uaktualniać eph
-            //if (tow > 0 && abs(gps_eph_iter->second.d_Toe - tow) > 60)
-            if (tow > 0)
+            //if (tow < toe || (ephemeris_map.count(prn) && ephemeris_map[prn].t0e_1 > toe))
+            //if(tow < toe || (ephemeris_map.count(prn) && tow > toe + MAXDTOE_GAL))
+            if(tow < toe || (tow > toe + MAXDTOE_GAL))
             {
-                //if (tow < toe || (ephemeris_map.count(prn) && ephemeris_map[prn].t0e_1 > toe))
-                //if(tow < toe || (ephemeris_map.count(prn) && tow > toe + MAXDTOE_GAL))
-                if(tow < toe || (tow > toe + MAXDTOE_GAL))
-                {
-                    //std::cout << "SKIP EPH PRN: " << prn << " TOW: " << tow << " TOE: " << toe << " week: " << week << std::endl;
-                    continue;
-                }
+                //std::cout << "SKIP EPH PRN: " << prn << " TOW: " << tow << " TOE: " << toe << " week: " << week << std::endl;
+                continue;
             }
-            //int min = -1;
-            // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
-
-            std::cout << "SUPL: Read XML Ephemeris for GALILEO SV " << prn << " TOW: " << tow << " TOE: "<< toe << " week: " << week << std::endl;
-            if (tow > toe + MAXDTOE_GAL)
-                std::cout << "\t(ADDED OLD EPH)" << std::endl;
-
-            auto tmp_obj = std::make_shared<Galileo_Ephemeris>(eph_iter->second);
-            // update/insert new ephemeris record to the global ephemeris map
-            ephemeris_map[prn] = *tmp_obj;
         }
+        //int min = -1;
+        // for(auto it = gps_ephemeris_map.find(prn); it != gps_ephemeris_map.end(); it++)
+
+        std::cout << "SUPL: Read XML Ephemeris for GALILEO SV " << prn << " TOW: " << tow << " TOE: "<< toe << " week: " << week << std::endl;
+        if (tow > toe + MAXDTOE_GAL)
+            std::cout << "\t(ADDED OLD EPH)" << std::endl;
+
+        auto tmp_obj = std::make_shared<Galileo_Ephemeris>(eph_iter->second);
+        // update/insert new ephemeris record to the global ephemeris map
+        ephemeris_map[prn] = *tmp_obj;
+    }
     return ephemeris_map;
 }
 
