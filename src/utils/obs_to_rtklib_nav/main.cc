@@ -918,7 +918,6 @@ int main(int argc, char** argv)
         supl_client.gps_iono.valid = true;
         d_ls_pvt->gps_iono = supl_client.gps_iono;
         std::cout << "SUPL: Read XML IONO loaded" << std::endl;
-
     }
     else
     {
@@ -935,11 +934,8 @@ int main(int argc, char** argv)
         std::cout << "ERROR: SUPL client error reading UTC XML" << std::endl;
     }
 
-
-
     Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
     Observables_Dump_Reader fu_observables(obs_n_channels); // przyszłe
-
 
     if (!observables.open_obs_file(obs_filename))
         std::cout << "Failure opening true observables file" << std::endl;
@@ -949,7 +945,6 @@ int main(int argc, char** argv)
 
     if (!fu_observables.open_obs_file(obs_filename))
         std::cout << "Failure opening true observables file" << std::endl;
-
 
     arma::vec sq_sum_ecef = { 0.0, 0.0, 0.0};
     arma::vec sum_meas_pos_ecef = { 0.0, 0.0, 0.0};
@@ -1002,7 +997,6 @@ int main(int argc, char** argv)
     if (save_gpx)
         gpx_dump.set_headers(gpxFName);
 
-
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
     fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]; bias2[Hz]\n");
 
@@ -1011,7 +1005,6 @@ int main(int argc, char** argv)
     for (int i = 0; i < obs_n_channels; i++)
         fprintf(resCsv, "; resRng%d; resCarr%d", i, i);
     fprintf(resCsv, "\n");
-
 
     int64_t epoch_counter = 0;
     int time_epoch = 0;
