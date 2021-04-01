@@ -871,6 +871,8 @@ int main(int argc, char** argv)
 
     int rem_comp_bias = configuration->property("obs_to_nav.rem_comp_bias", 1);
 
+    int decym = configuration->property("obs_to_nav.decym", 1);
+
 #if 0
 #include "conf-inc-obso.c"
 #endif
@@ -934,7 +936,6 @@ int main(int argc, char** argv)
     }
 
 
-    int decym = 1;
 
     Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
     Observables_Dump_Reader fu_observables(obs_n_channels); // przyszłe
@@ -1434,7 +1435,7 @@ int main(int argc, char** argv)
             continue;
 
 
-        if (time_epoch % decym)
+        if (decym > 1 && (time_epoch % decym))
             continue;
 
         // if (epoch_counter < 20)
