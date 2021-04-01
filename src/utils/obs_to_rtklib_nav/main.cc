@@ -806,7 +806,6 @@ void check_gal_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map,  std::ma
 
 int main(int argc, char** argv)
 {
-
     if(argc < 2)
     {
         printf("arg: conf path \n");
