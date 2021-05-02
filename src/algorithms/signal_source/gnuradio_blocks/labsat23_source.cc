@@ -144,14 +144,14 @@ void labsat23_source::decode_samples_one_channel(int16_t input_short, gr_complex
                                 }
                             else  // 10
                                 {
-                                    out[i] = gr_complex(-2, 0);
+                                    out[i] = gr_complex(-3, 0);
                                 }
                         }
                     else
                         {
                             if (bs[13 - 4 * i])  // 01
                                 {
-                                    out[i] = gr_complex(2, 0);
+                                    out[i] = gr_complex(3, 0);
                                 }
                             else
                                 {
@@ -168,14 +168,14 @@ void labsat23_source::decode_samples_one_channel(int16_t input_short, gr_complex
                                 }
                             else  // 10
                                 {
-                                    out[i] += gr_complex(0, -2);
+                                    out[i] += gr_complex(0, -3);
                                 }
                         }
                     else
                         {
                             if (bs[12 - 4 * i])  // 01
                                 {
-                                    out[i] += gr_complex(0, 2);
+                                    out[i] += gr_complex(0, 3);
                                 }
                             else
                                 {
