@@ -993,6 +993,9 @@ int main(int argc, char** argv)
         std::cout << "gpx save OFF" << std::endl;
     }
 
+    traceopen("obs2rtklib.trace");
+    tracelevel(5);
+
     Gpx_Printer gpx_dump(gpxDir);
     if (save_gpx)
         gpx_dump.set_headers(gpxFName);
@@ -1621,6 +1624,7 @@ int main(int argc, char** argv)
         close_obs_csv(fcsv_ch, obs_n_channels);
     }
 
+    traceclose();
 	return 0;
 }
 
