@@ -635,7 +635,7 @@ void save_ephemeris_csv(std::string eph_xml_filename)
 
 
 
-void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr, double *prev_rg, std::shared_ptr<MovingAv<50>> *bias_smth)
+void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr, double *prev_rg) //, std::shared_ptr<MovingAv<50>> *bias_smth)
 {
     double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT_M_S;// - .068;
     double carr = o->Carrier_phase_rads / TWO_PI;
@@ -652,12 +652,13 @@ void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *p
         carr_f = -(carr - *prev_carr) / tm_dt;
         range_f = -(o->Pseudorange_m - *prev_rg) / tm_dt / LAMBDA_XX(isDual);
 
-        if(fabs(carr_f-range_f) < 5000)
-            bias_f = (*bias_smth)->next(carr_f - range_f);
-        else
-        {
-            printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
-        }
+        if (fabs(carr_f - range_f) > 10)
+                printf("*** SAT %d BIG freq bias = %g, carr_fq = %g, rg_fq=%g \n", o->PRN, carr_f-range_f, carr_f, range_f);
+        if (fabs(carr_f-range_f) < 5000)
+            bias_f = carr_f - range_f;
+        //    bias_f = (*bias_smth)->next(carr_f - range_f);
+        //else
+        //    printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
     }
     else
     {
@@ -1032,7 +1033,7 @@ int main(int argc, char** argv)
     double fu_prev_carr[obs_n_channels] = {0};
     double fu_prev_range[obs_n_channels] = {0};
 
-    std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
+    //std::shared_ptr<MovingAv<50>> bias_csv_smth[obs_n_channels];
 
     auto bias_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
     auto bias2_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
@@ -1045,7 +1046,7 @@ int main(int argc, char** argv)
         carr_smth[i] = std::make_shared<MovingAv<50>>();
         rng_smth[i] = std::make_shared<MovingAv<50>>();
         rx_smth[i] = std::make_shared<MovingAv<50>>();
-        bias_csv_smth[i] = std::make_shared<MovingAv<50>>();
+        //bias_csv_smth[i] = std::make_shared<MovingAv<50>>();
     }
 
     if (WRITE_OBS_CSV)
@@ -1486,7 +1487,7 @@ int main(int argc, char** argv)
             for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
             {
                 int n = it->first;
-                write_obs_csv(fcsv_ch[n], &it->second, prev_csv_tm + n, prev_csv_carr + n, prev_csv_rg + n, bias_csv_smth + n);
+                write_obs_csv(fcsv_ch[n], &it->second, prev_csv_tm + n, prev_csv_carr + n, prev_csv_rg + n); //, bias_csv_smth + n);
             }
         }
 
@@ -1589,7 +1590,6 @@ int main(int argc, char** argv)
             gpx_dump.print_position(d_ls_pvt.get(), false);
 
     }
-
 
     std::cout << "-----------------" << std::endl;
     std::cout << "mode = " << positioning_mode_str << std::endl;
