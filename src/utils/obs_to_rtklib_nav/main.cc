@@ -1010,6 +1010,9 @@ int main(int argc, char** argv)
         fprintf(resCsv, "; resRng%d; resCarr%d", i, i);
     fprintf(resCsv, "\n");
 
+    FILE *pBiasCsv = fopen((obs_filename + "_preBias.csv").c_str(), "w");
+    fprintf(pBiasCsv, "time;bias-band1;bias-band2\n");
+
     int64_t epoch_counter = 0;
     int time_epoch = 0;
     double prev_time = -1;
@@ -1066,6 +1069,8 @@ int main(int argc, char** argv)
         double curr_carr_biases2[obs_n_channels];
         int curr_carr_biases2_num = 0;
 
+        double lastobstm = 0;
+
         if (fu_observables.read_binary_obs())
         {
             for (int n = 0; n < obs_n_channels; n++)
@@ -1075,7 +1080,7 @@ int main(int argc, char** argv)
                     continue;
 
                 int prn = observables.PRN[n];
-
+                lastobstm = fu_observables.RX_time[n];
                 //if (IS_DUAL(prn))
                 //    continue;
 
@@ -1135,6 +1140,9 @@ int main(int argc, char** argv)
                 carr_bias2_cmp_skip = 0;
             }
         }
+
+        fprintf(pBiasCsv, "%.12g;%.12g;%.12g\n", lastobstm, carr_bias_pre_flt, carr_bias2_pre_ft);
+
 
         if (fu_lag_startup)
         {
@@ -1623,6 +1631,8 @@ int main(int argc, char** argv)
     {
         close_obs_csv(fcsv_ch, obs_n_channels);
     }
+
+    fclose(pBiasCsv);
 
     traceclose();
 	return 0;
