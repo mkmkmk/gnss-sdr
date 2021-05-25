@@ -1,6 +1,6 @@
 /*!
  * \file main.cc
- * \brief rtklib_solver_test clone, accepts observables.dat
+ * \brief obs_to_rtklib clone, accepts observables.dat, rinex generator
  * \author Mariusz Krej
  *
  *
@@ -66,33 +66,71 @@
 
 //#define DUAL_RINEX (0)
 
+#define LAMBDA_L1 ( SPEED_OF_LIGHT_M_S / 1540 / 1023000)
+#define LAMBDA_L5 ( SPEED_OF_LIGHT_M_S / 1150 / 1023000)
+#define LAMBDA_XX(IS_DUAL) ((IS_DUAL) ? LAMBDA_L5 : LAMBDA_L1)
+
+#define IS_DUAL(ARG) ((ARG) & 0x80)
+
+// -- ad usuwanie odstających biasu częstotliwości
+// liczba kolejnych odstających od ogólnej średniej po której kolejne przestają być odstającymi
+#define CARR_BIAS_CMP_MAX_SKIP (5)
+
+// próg realnego biasu
+#define REAL_BIAS_THRESH (5000)
+
+// próg w Hz na odstających z ogólnej średniej biasu
+#define CARR_BIAS_OUT_THRESH (100)
+
+// długość uśredniania średniego biasu
+#define BIAS_SMOOTH_MEAN_N (250)
 
 
-void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr)
+void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *prev_carr, double *prev_rg)
 {
     double ttime  = o->Pseudorange_m / SPEED_OF_LIGHT_M_S;// - .068;
     double carr = o->Carrier_phase_rads / TWO_PI;
 
     double tm_dt = o->RX_time - *prev_tm;
-    double freq = 0;
-    if(tm_dt >= 0.001)
-        freq = (carr - *prev_carr) / (tm_dt);
+    double carr_f = 0;
+    double range_f = 0;
+    double bias_f = 0;
+
+    int isDual = o->Signal == std::string("L5") || o->Signal == std::string("5X");
+
+    if (*prev_tm >= 0.001 && tm_dt >= 0.001)
+    {
+        carr_f = (carr - *prev_carr) / tm_dt;
+        range_f = -(o->Pseudorange_m - *prev_rg) / tm_dt / LAMBDA_XX(isDual);
+
+        if (fabs(carr_f - range_f) > 10)
+                printf("*** SAT %d BIG freq bias = %g, carr_fq = %g, rg_fq=%g \n", o->PRN, carr_f-range_f, carr_f, range_f);
+
+        if (fabs(carr_f-range_f) < 5000)
+            bias_f = carr_f - range_f;
+    }
     else
+    {
         tm_dt = 0.001;
+    }
 
     fprintf(
             fcsv,
-            "%.15g; %.12g; %.20g; %d; %g; %.15g; %g\n",
+            "%.15g; %.12g; %.20g; %d; %g; %.15g; %g; %g; %g\n",
             o->RX_time,
             o->Pseudorange_m,
             carr,
             o->PRN,
             o->Carrier_Doppler_hz,
             ttime,
-            freq
+            carr_f,
+            range_f,
+            bias_f
     );
+
     *prev_carr = carr;
     *prev_tm = o->RX_time;
+    *prev_rg = o->Pseudorange_m;
 }
 
 
@@ -115,7 +153,7 @@ int start_obs_csv(const char *readPath, FILE **fcsv_ch, int chan_num)
             return 1;
         }
         // fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; valid_ch%d\n", i, i, i, i);
-        fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; doppler; t-time; d/dt(carr)\n", i, i, i);
+        fprintf(fcsv_ch[i], "rx_time; p-rng_ch%d; phase_cyc_ch%d; prn_ch%d; doppler; t-time; dopp(carr); dopp(rng); bias\n", i, i, i);
 
     }
     printf("--\n");
@@ -133,7 +171,7 @@ void close_obs_csv(FILE **fcsv_ch, int chan_num)
 }
 
 template <size_t N>
-class MovingMean
+class MovingAv
 {
 private:
     double samples_[N];
@@ -167,6 +205,42 @@ double truncmod(double a, double b)
 }
 
 
+double comp_carr_bias_pre_flt(double *curr_carr_biases, int curr_carr_biases_num)
+{
+    double carr_bias_pre_flt;
+
+    if (0)
+    {
+        std::vector<double> curr_carr_biases_v(curr_carr_biases, curr_carr_biases + curr_carr_biases_num);
+        std::sort(curr_carr_biases_v.begin(), curr_carr_biases_v.end());
+        carr_bias_pre_flt = curr_carr_biases_v[curr_carr_biases_num / 2];
+    }
+
+    double bsum0 = 0;
+    for (int ii = 0; ii < curr_carr_biases_num; ++ii)
+        bsum0 += curr_carr_biases[ii];
+    carr_bias_pre_flt = bsum0 / curr_carr_biases_num;
+
+    if (curr_carr_biases_num > 1)
+    {
+        double bsum1 = 0;
+        int num1 = 0;
+        for (int ii = 0; ii < curr_carr_biases_num; ++ii)
+        {
+            if (fabs(curr_carr_biases[ii] - bsum0) > CARR_BIAS_OUT_THRESH)
+                continue;
+            bsum1 += curr_carr_biases[ii];
+            num1++;
+        }
+        if (num1 != curr_carr_biases_num && num1 > 0)
+            carr_bias_pre_flt = bsum1 / num1;
+    }
+
+    return carr_bias_pre_flt;
+}
+
+
+
 int main(int argc, char** argv)
 {
 
@@ -198,19 +272,19 @@ int main(int argc, char** argv)
     if (argc > 5)
         isDual = atoi(argv[5]);
 
-    double carr_bias = 0;
+    //double carr_bias = 0;
+    double carr_bias0 = 0;
     if (argc > 6)
-        carr_bias = atof(argv[6]);
+        carr_bias0 = atof(argv[6]);
 
 
     printf("obs_n_channels = %d\n", obs_n_channels);
     printf("week           = %d\n", week);
     printf("isGalileo      = %d\n", isGalileo);
     printf("isDual         = %d\n", isDual);
-    printf("carr_bias      = %.10g\n", carr_bias);
+    printf("carr_bias0      = %.10g\n", carr_bias0);
 
     int decym = 1;
-
 
     Observables_Dump_Reader observables(obs_n_channels);  // 1 extra
 
@@ -238,18 +312,19 @@ int main(int argc, char** argv)
 
 
     FILE *fcsv_ch[obs_n_channels];
-    double prev_csv_carr[obs_n_channels];
-    double prev_csv_tm[obs_n_channels];
+    double prev_csv_carr[obs_n_channels] = {0};
+    double prev_csv_rg[obs_n_channels] = {0};
+    double prev_csv_tm[obs_n_channels] = {0};
 
 #if 0
-    std::shared_ptr<MovingMean<50>> carr_smth[obs_n_channels];
-    std::shared_ptr<MovingMean<50>> rng_smth[obs_n_channels];
-    std::shared_ptr<MovingMean<50>> rx_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> carr_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> rng_smth[obs_n_channels];
+    std::shared_ptr<MovingAv<50>> rx_smth[obs_n_channels];
     for (int i = 0; i < obs_n_channels; ++i)
     {
-        carr_smth[i] = std::make_shared<MovingMean<50>>();
-        rng_smth[i] = std::make_shared<MovingMean<50>>();
-        rx_smth[i] = std::make_shared<MovingMean<50>>();
+        carr_smth[i] = std::make_shared<MovingAv<50>>();
+        rng_smth[i] = std::make_shared<MovingAv<50>>();
+        rx_smth[i] = std::make_shared<MovingAv<50>>();
     }
 #endif
 
@@ -271,22 +346,27 @@ int main(int argc, char** argv)
 
 
     bool first_valid = true;
-    int prev_prn[obs_n_channels];
-    double prev_carr_rad[obs_n_channels];
-    double prev_carr[obs_n_channels];
-    double prev_rxtime[obs_n_channels];
-    double carr_acc[obs_n_channels];
-    double prev_rng[obs_n_channels];
+    int prev_prn[obs_n_channels] = {0};
+    double prev_carr_rad[obs_n_channels] = {0};
+    double prev_carr[obs_n_channels] = {0};
+    double prev_rxtime[obs_n_channels] = {0};
+    double carr_acc[obs_n_channels] = {0};
+    double prev_range[obs_n_channels] = {0};
 
     for (int ii = 0; ii < obs_n_channels; ++ii)
-    {
         prev_prn[ii] = -1;
-        prev_carr_rad[ii] = 0;
-        prev_carr[ii] = 0;
-        prev_rxtime[ii] = 0;
-        carr_acc[ii] = 0;
-        prev_rng[ii] = 0;
-    }
+
+    double carr_bias_cmp = carr_bias0;
+    double carr_bias2_cmp = carr_bias0;
+    double carr_bias_pre_flt = 0;
+    double carr_bias2_pre_ft = 0;
+
+    int carr_bias_cmp_skip = 0;
+    int carr_bias2_cmp_skip = 0;
+
+    auto bias_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
+    auto bias2_smth = std::make_shared<MovingAv<BIAS_SMOOTH_MEAN_N>>();
+
 
     //int lli[obs_n_channels];
 
@@ -294,6 +374,81 @@ int main(int argc, char** argv)
 
     while (observables.read_binary_obs())
     {
+        double curr_carr_biases[obs_n_channels];
+        int curr_carr_biases_num = 0;
+
+        double curr_carr_biases2[obs_n_channels];
+        int curr_carr_biases2_num = 0;
+
+
+        for (int n = 0; n < obs_n_channels; n++)
+        {
+            bool valid = static_cast<bool>(observables.valid[n]);
+            if (!valid)
+                continue;
+
+            int prn = observables.PRN[n];
+
+            //if (IS_DUAL(prn))
+            //    continue;
+
+            double carr = observables.Acc_carrier_phase_hz[n];
+            double range = observables.Pseudorange_m[n];
+            double tm_dt = observables.RX_time[n] - prev_rxtime[n];
+            if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+            {
+                double carr_f = -(carr - prev_carr[n]) / tm_dt;
+                double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
+
+                //double carr_f = -(carr - prev_carr[n]) ;
+                //double range_f = -(range - prev_range[n]) / LAMBDA_XX(IS_DUAL(prn));
+
+                if (fabs(carr_f - carr_bias0 - range_f) < REAL_BIAS_THRESH)
+                {
+                    //carr_bias_cmp = bias_smth->next(carr_f - range_f);
+                    if (!IS_DUAL(prn))
+                    {
+                        curr_carr_biases[curr_carr_biases_num] = carr_f - range_f;
+                        curr_carr_biases_num++;
+                    }
+                    else
+                    {
+                        curr_carr_biases2[curr_carr_biases2_num] = carr_f - range_f;
+                        curr_carr_biases2_num++;
+                    }
+                }
+                else
+                {
+                    printf("*** freq bias comp ovf carr_fq = %g rg_fq=%g\n", carr_f, range_f);
+                }
+            }
+            //prev_rxtime[n] = observables.RX_time[n];
+            //prev_carr[n] = carr;
+            //prev_range[n] = range;
+        }
+
+        // comp mean carr bias
+        if (/*rem_comp_bias &&*/ curr_carr_biases_num)
+        {
+            carr_bias_pre_flt = comp_carr_bias_pre_flt(curr_carr_biases, curr_carr_biases_num);
+            if (fabs(carr_bias_cmp - carr_bias_pre_flt) < CARR_BIAS_OUT_THRESH || ++carr_bias_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
+            {
+                carr_bias_cmp = bias_smth->next(carr_bias_pre_flt);
+                carr_bias_cmp_skip = 0;
+            }
+        }
+
+        // comp mean carr bias dual
+        if (/*rem_comp_bias &&*/ curr_carr_biases2_num)
+        {
+            carr_bias2_pre_ft = comp_carr_bias_pre_flt(curr_carr_biases2, curr_carr_biases2_num);
+            if (fabs(carr_bias2_cmp - carr_bias2_pre_ft) < CARR_BIAS_OUT_THRESH || ++carr_bias2_cmp_skip > CARR_BIAS_CMP_MAX_SKIP)
+            {
+                carr_bias2_cmp = bias2_smth->next(carr_bias2_pre_ft);
+                carr_bias2_cmp_skip = 0;
+            }
+        }
+
         std::map<int, Gnss_Synchro> gnss_synchro_map;
 
         double rx_time = 0;
@@ -320,31 +475,32 @@ int main(int argc, char** argv)
 
             Gnss_Synchro gns_syn;
 
+            // lock lost indicator
+            bool lli = false;
+
             if (!isGalileo)
             {
                 gns_syn.System = 'G';
-                gns_syn.Signal[0] = '1';
-                gns_syn.Signal[1] = 'C';
+                memcpy(gns_syn.Signal, "1C", 2);
             }
             else
             {
                 gns_syn.System = 'E';
-                gns_syn.Signal[0] = '1';
-                gns_syn.Signal[1] = 'B';
+                memcpy(gns_syn.Signal, "1B", 2);
             }
 
             gns_syn.Flag_valid_word = valid;
 
             int prn = observables.PRN[n];
-
+            int isDual = IS_DUAL(prn);
 
             #if 0
                 #warning TEMP tylko pasmo 2
-                if ((prn & 0x80) == 0)
+                if (isDual == 0)
                     continue;
             #endif
 
-            if (prn & 0x80)
+            if (isDual)
             {
                 //#warning TEMP tylko pasmo 1
                 //continue;
@@ -356,13 +512,13 @@ int main(int argc, char** argv)
 
                 if (!isGalileo)
                 {
-                    gns_syn.Signal[0] = 'L';
-                    gns_syn.Signal[1] = '5';
+                    gns_syn.System = 'G';
+                    memcpy(gns_syn.Signal, "L5", 2);
                 }
                 else
                 {
-                    gns_syn.Signal[0] = '5';
-                    gns_syn.Signal[1] = 'X';
+                    gns_syn.System = 'E';
+                    memcpy(gns_syn.Signal, "5X", 2);
                 }
 
                 //std::cout << "DUAL SEC OBS TEMP SKIP  " << std::endl;
@@ -380,7 +536,6 @@ int main(int argc, char** argv)
             // std::cout << "ph = " << observables.Acc_carrier_phase_hz[n] << std::endl;
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
 #else
-#warning DBG MIN MEAS
             gns_syn.RX_time = observables.RX_time[n];
             //gns_syn.RX_time = rx_smth[n]->next(observables.RX_time[n]);
 
@@ -405,29 +560,46 @@ int main(int argc, char** argv)
                 printf("dbg\n");
             }
 
-            if (carr_bias != 0)
+            // wykrywanie dużego biasu range/carr
+            if (1)
+            {
+                double range = observables.Pseudorange_m[n];
+                double tm_dt = observables.RX_time[n] - prev_rxtime[n];
+                if (prev_rxtime[n] >= 0.001 && tm_dt >= 0.001)
+                {
+                    int prn = observables.PRN[n];
+                    double carr_f = -(carr - prev_carr[n]) / tm_dt;
+                    double range_f = -(range - prev_range[n]) / tm_dt / LAMBDA_XX(IS_DUAL(prn));
+                    if (fabs(carr_f - carr_bias0 - range_f) >= REAL_BIAS_THRESH)
+                        lli = true;
+                }
+            }
+
+            //if (carr_bias != 0)
             {
 
                 if (prev_rxtime[n] == 0 || (prev_carr[n] != 0 && abs(prev_carr[n] - carr) > 100e6))
                 {
                     carr_acc[n] = -carr;
+                    printf("-- %g rst carr sat %d\n", observables.RX_time[n], (int)observables.PRN[n]);
+                    lli = true;
                 }
                 else
                 {
-                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * carr_bias;
+                    double abias = !isDual ? carr_bias_cmp : carr_bias2_cmp;
+                    carr_acc[n] += (observables.RX_time[n] - prev_rxtime[n]) * abias;
                 }
-
-                prev_carr[n] = carr;
-
-                carr += carr_acc[n];
             }
+
+            prev_carr[n] = carr;
+
+            carr += carr_acc[n];
 
             //gns_syn.Carrier_phase_rads = observables.Acc_carrier_phase_hz[n] * GPS_TWO_PI;
             gns_syn.Carrier_phase_rads = carr * TWO_PI;
 
             // 1e9 rollover bo nie mieści się w rinex
             gns_syn.Carrier_phase_rads = truncmod(gns_syn.Carrier_phase_rads, 1e9 * TWO_PI);
-
 
             //gns_syn.Carrier_phase_rads = carr_smth[n]->next(observables.Acc_carrier_phase_hz[n] * TWO_PI);
 
@@ -437,32 +609,26 @@ int main(int argc, char** argv)
             //gns_syn.Carrier_phase_rads = ((int)(-observables.Acc_carrier_phase_hz[n] / 1)) * TWO_PI * 1;
             //gns_syn.Carrier_phase_rads = 0;
 
-
             gns_syn.Pseudorange_m = observables.Pseudorange_m[n];
             gns_syn.interp_TOW_ms = gns_syn.RX_time - gns_syn.Pseudorange_m / SPEED_OF_LIGHT_M_S;
 
             // wykrywanie skoków tx time ("*** rx_time_set ***")
             // - niezbyt dobrze działa
-            bool lli = false;
             if (observables.RX_time[n] - prev_rxtime[n] < 1e-3)
             {
                 lli = true;
             }
-            else if (fabs(gns_syn.Pseudorange_m - prev_rng[n]) / (observables.RX_time[n] - prev_rxtime[n]) > 10000)
+            else if (fabs(gns_syn.Pseudorange_m - prev_range[n]) / (observables.RX_time[n] - prev_rxtime[n]) > 10000)
             {
                 lli = true;
             }
 
-            prev_rng[n] = gns_syn.Pseudorange_m;
+            prev_range[n] = gns_syn.Pseudorange_m;
             prev_rxtime[n] = observables.RX_time[n];
-
-            if (lli)
-                gns_syn.CN0_dB_hz = -1;
 
             //pseudorange_m = (self->rx_time - txTime) * c ;
             //pseudorange_m/c = self->rx_time - txTime;
             //txTime = self->rx_time - pseudorange_m/c;
-
 
             //gns_syn.Pseudorange_m = rng_smth[n]->next(observables.Pseudorange_m[n]);
 
@@ -470,6 +636,13 @@ int main(int argc, char** argv)
             //gns_syn.Pseudorange_m = (int)(observables.Pseudorange_m[n] * 1000) / 1000.0;
 
 #endif
+
+            // gdy CN0_dB_hz ==-1 to LLI
+            if (lli)
+            {
+                gns_syn.CN0_dB_hz = -1;
+                printf("\n*** LLI ***\n\n");
+            }
 
             // flagi LLI po dodaniu nowej sat lub carr rollover
             if (1 && valid)
@@ -486,7 +659,6 @@ int main(int argc, char** argv)
             }
 
             prev_carr_rad[n] = gns_syn.Carrier_phase_rads;
-
 
             #if 0
             #warning dbg
@@ -548,7 +720,7 @@ int main(int argc, char** argv)
                 anyValid = true;
             }
 
-        }
+        } //for
 
         if (error)
         {
@@ -566,10 +738,8 @@ int main(int argc, char** argv)
 
         first_valid = false;
 
-        if (time_epoch % decym)
+        if (decym > 1 && (time_epoch % decym))
             continue;
-
-
 
         // if (epoch_counter < 20)
         //    continue;
@@ -595,7 +765,10 @@ int main(int argc, char** argv)
         if (WRITE_OBS_CSV)
         {
             for (auto it = gnss_synchro_map.cbegin(); it != gnss_synchro_map.cend(); it++)
-                write_obs_csv(fcsv_ch[it->first], &it->second, prev_csv_tm + it->first, prev_csv_carr + it->first);
+            {
+                int n = it->first;
+                write_obs_csv(fcsv_ch[n], &it->second, prev_csv_tm + n, prev_csv_carr + n, prev_csv_rg + n);
+            }
         }
 
         if (!rinex_hdr_wr)
@@ -656,6 +829,6 @@ int main(int argc, char** argv)
         close_obs_csv(fcsv_ch, obs_n_channels);
     }
 
-	return 0;
+    return 0;
 }
 
