@@ -58,6 +58,7 @@
 #include <boost/serialization/map.hpp>
 #include <boost/shared_ptr.hpp>
 #include "file_configuration.h"
+#include <errno.h>
 
 
 #define LOG(severity) std::cout
@@ -240,6 +241,43 @@ double comp_carr_bias_pre_flt(double *curr_carr_biases, int curr_carr_biases_num
 }
 
 
+int rd_bias_csv_next(FILE* fcsv, double *tow, double *bias_band1, double *bias_band2)
+{
+    char *token, *saveptr, *dline, *endptr;
+    char line[1024];
+
+    *tow = 0;
+    *bias_band1 = 0;
+    *bias_band2 = 0;
+    double val;
+
+    if (!fgets(line, 1024, fcsv))
+        return 0;
+
+    dline = line;
+
+    for (int i = 0; 3; ++i)
+    {
+        token = strtok_r(dline, ";\n", &saveptr);
+        dline = NULL;
+        if (!token)
+            break;
+        val = strtod(token, &endptr);
+
+        if (endptr == token || errno != 0)
+            printf("\nparse error??\n");
+
+        if (i == 0)
+            *tow = val;
+        else if (i == 1)
+            *bias_band1 = val;
+        else if (i == 2)
+            *bias_band2 = val;
+    }
+
+    return 1;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -334,6 +372,24 @@ int main(int argc, char** argv)
     FILE *pBiasCsv = fopen((obs_filename + "_preBias.csv").c_str(), "w");
     fprintf(pBiasCsv, "time;bias-band1;bias-band2\n");
 
+    std::string rdBiasPath = obs_filename + "_preBias.csv-ft.csv";
+    FILE *rdBiasCsv = fopen(rdBiasPath.c_str(), "r");
+    char line[1024];
+
+    if (rdBiasCsv)
+    {
+        if (fgets(line, 1024, rdBiasCsv))
+            printf("*** reading filtered biases file\n");
+        else
+        {
+            fclose(rdBiasCsv);
+            rdBiasCsv = 0;
+        }
+    }
+    else
+    {
+        printf("*** filtered biases file does not exist (%s)\n", rdBiasPath.c_str());
+    }
 
     //int last_eph_update_tm = -1;
 
@@ -454,6 +510,26 @@ int main(int argc, char** argv)
             {
                 carr_bias2_cmp = bias2_smth->next(carr_bias2_pre_ft);
                 carr_bias2_cmp_skip = 0;
+            }
+        }
+
+        if (rdBiasCsv)
+        {
+            double rd_tow, rd_bias_band1, rd_bias_band2;
+            int rd_bias_ok = rd_bias_csv_next(rdBiasCsv, &rd_tow, &rd_bias_band1, &rd_bias_band2);
+
+            if (rd_bias_ok)
+                rd_bias_ok = fabs(rd_tow - lastobstm) < 1e-3;
+
+            if (rd_bias_ok)
+            {
+                carr_bias_cmp = rd_bias_band1;
+                carr_bias2_cmp = rd_bias_band2;
+                printf("readed filtered bias\n");
+            }
+            else
+            {
+                printf("missed filtered bias\n");
             }
         }
 
@@ -830,6 +906,8 @@ int main(int argc, char** argv)
     std::ofstream  dst(obs_filename+".O",   std::ios::binary);
     dst << src.rdbuf();
 
+    if (rdBiasCsv)
+        fclose(rdBiasCsv);
     fclose(pBiasCsv);
 
     if (WRITE_OBS_CSV)
