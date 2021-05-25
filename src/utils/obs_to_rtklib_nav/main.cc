@@ -58,7 +58,7 @@
 // próg realnego biasu
 #define REAL_BIAS_THRESH (5000)
 
-// długoś uśredniania średniego biasu
+// długość uśredniania średniego biasu
 #define BIAS_SMOOTH_MEAN_N (250)
 
 // -- ad usuwanie odstających biasu częstotliwości
@@ -654,6 +654,7 @@ void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *p
 
         if (fabs(carr_f - range_f) > 10)
                 printf("*** SAT %d BIG freq bias = %g, carr_fq = %g, rg_fq=%g \n", o->PRN, carr_f-range_f, carr_f, range_f);
+
         if (fabs(carr_f-range_f) < 5000)
             bias_f = carr_f - range_f;
         //    bias_f = (*bias_smth)->next(carr_f - range_f);
@@ -664,7 +665,6 @@ void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *p
     {
         tm_dt = 0.001;
     }
-
 
     fprintf(
             fcsv,
@@ -679,6 +679,7 @@ void write_obs_csv(FILE *fcsv, const Gnss_Synchro *o, double *prev_tm, double *p
             range_f,
             bias_f
     );
+
     *prev_carr = carr;
     *prev_tm = o->RX_time;
     *prev_rg = o->Pseudorange_m;
@@ -1310,7 +1311,6 @@ int main(int argc, char** argv)
                 }
             }
 
-
             {
 
                 //if (carr_rx0 < 0)
@@ -1635,6 +1635,6 @@ int main(int argc, char** argv)
     fclose(pBiasCsv);
 
     traceclose();
-	return 0;
+    return 0;
 }
 
