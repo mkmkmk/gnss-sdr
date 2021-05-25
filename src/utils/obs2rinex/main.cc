@@ -331,6 +331,10 @@ int main(int argc, char** argv)
     if (WRITE_OBS_CSV)
         start_obs_csv(obs_filename.c_str(), fcsv_ch, obs_n_channels);
 
+    FILE *pBiasCsv = fopen((obs_filename + "_preBias.csv").c_str(), "w");
+    fprintf(pBiasCsv, "time;bias-band1;bias-band2\n");
+
+
     //int last_eph_update_tm = -1;
 
     std::shared_ptr<Rinex_Printer> rinex = std::make_shared<Rinex_Printer>();
@@ -380,6 +384,7 @@ int main(int argc, char** argv)
         double curr_carr_biases2[obs_n_channels];
         int curr_carr_biases2_num = 0;
 
+        double lastobstm = 0;
 
         for (int n = 0; n < obs_n_channels; n++)
         {
@@ -388,6 +393,7 @@ int main(int argc, char** argv)
                 continue;
 
             int prn = observables.PRN[n];
+            lastobstm = observables.RX_time[n];
 
             //if (IS_DUAL(prn))
             //    continue;
@@ -437,6 +443,8 @@ int main(int argc, char** argv)
                 carr_bias_cmp_skip = 0;
             }
         }
+
+        fprintf(pBiasCsv, "%.12g;%.12g;%.12g\n", lastobstm, carr_bias_pre_flt, carr_bias2_pre_ft);
 
         // comp mean carr bias dual
         if (/*rem_comp_bias &&*/ curr_carr_biases2_num)
@@ -810,9 +818,7 @@ int main(int argc, char** argv)
 
         std::cout << "RX TOW = " << rx_time << std::endl;
 
-
     }
-
 
     std::cout << "-----------------" << std::endl;
     std::cout << "epoch_counter = " << epoch_counter << std::endl;
@@ -823,6 +829,8 @@ int main(int argc, char** argv)
     std::ifstream  src(rinex->obsfilename, std::ios::binary);
     std::ofstream  dst(obs_filename+".O",   std::ios::binary);
     dst << src.rdbuf();
+
+    fclose(pBiasCsv);
 
     if (WRITE_OBS_CSV)
     {
