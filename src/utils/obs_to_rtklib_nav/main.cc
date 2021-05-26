@@ -50,7 +50,6 @@
 
 #include "file_configuration.h"
 
-
 #define LOG(severity) std::cout
 
 #define WRITE_OBS_CSV (1)
@@ -806,6 +805,48 @@ void check_gal_eph(const std::map<int, Gnss_Synchro>& gnss_synchro_map,  std::ma
 }
 
 
+
+int rd_bias_csv_next(FILE* fcsv, double *tow, double *bias_band1, double *bias_band2)
+{
+    char *token, *saveptr, *aline, *endptr;
+    char line[1024];
+    char line2[1024];
+    char delim[] = ";\n";
+
+    *tow = 0;
+    *bias_band1 = 0;
+    *bias_band2 = 0;
+    double val;
+
+    if (!fgets(line, 1024, fcsv))
+        return 0;
+
+    strcpy(line2, line);
+    aline = line2;
+
+    for (int i = 0; 3; ++i)
+    {
+        token = strtok_r(aline, delim, &saveptr);
+        aline = NULL;
+        if (!token)
+            break;
+        val = strtod(token, &endptr);
+
+        if (endptr == token)
+            printf("\nparse error?? ('%s')\n", token);
+
+        if (i == 0)
+            *tow = val;
+        else if (i == 1)
+            *bias_band1 = val;
+        else if (i == 2)
+            *bias_band2 = val;
+    }
+
+    return 1;
+}
+
+
 int main(int argc, char** argv)
 {
     if(argc < 2)
@@ -1014,6 +1055,23 @@ int main(int argc, char** argv)
     FILE *pBiasCsv = fopen((obs_filename + "_preBias.csv").c_str(), "w");
     fprintf(pBiasCsv, "time;bias-band1;bias-band2\n");
 
+    std::string rdBiasPath = obs_filename + "_preBias.csv-ft.csv";
+    FILE *rdBiasCsv = fopen(rdBiasPath.c_str(), "r");
+    char line[1024];
+
+    if (rdBiasCsv)
+    {
+        if (fgets(line, 1024, rdBiasCsv))
+            printf("*** reading filtered biases file\n");
+        else
+        {
+            fclose(rdBiasCsv);
+            rdBiasCsv = 0;
+        }
+    }
+    if (!rdBiasCsv)
+        printf("*** filtered biases file not found or open error (%s)\n", rdBiasPath.c_str());
+
     int64_t epoch_counter = 0;
     int time_epoch = 0;
     double prev_time = -1;
@@ -1144,6 +1202,25 @@ int main(int argc, char** argv)
 
         fprintf(pBiasCsv, "%.12g;%.12g;%.12g\n", lastobstm, carr_bias_pre_flt, carr_bias2_pre_ft);
 
+        if (rdBiasCsv)
+        {
+            double rd_tow, rd_bias_band1, rd_bias_band2;
+            int rd_bias_ok = rd_bias_csv_next(rdBiasCsv, &rd_tow, &rd_bias_band1, &rd_bias_band2);
+
+            if (rd_bias_ok)
+                rd_bias_ok = fabs(rd_tow - lastobstm) < 1e-3;
+
+            if (rd_bias_ok)
+            {
+                carr_bias_cmp = rd_bias_band1;
+                carr_bias2_cmp = rd_bias_band2;
+                printf("readed filtered bias\n");
+            }
+            else
+            {
+                printf("missed filtered bias\n");
+            }
+        }
 
         if (fu_lag_startup)
         {
@@ -1632,6 +1709,8 @@ int main(int argc, char** argv)
         close_obs_csv(fcsv_ch, obs_n_channels);
     }
 
+    if (rdBiasCsv)
+        fclose(rdBiasCsv);
     fclose(pBiasCsv);
 
     traceclose();
