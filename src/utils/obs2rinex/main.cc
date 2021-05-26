@@ -58,7 +58,6 @@
 #include <boost/serialization/map.hpp>
 #include <boost/shared_ptr.hpp>
 #include "file_configuration.h"
-#include <errno.h>
 
 
 #define LOG(severity) std::cout
@@ -264,8 +263,8 @@ int rd_bias_csv_next(FILE* fcsv, double *tow, double *bias_band1, double *bias_b
             break;
         val = strtod(token, &endptr);
 
-        if (endptr == token || errno != 0)
-            printf("\nparse error??\n");
+        if (endptr == token)
+            printf("\nparse error?? ('%s')\n", token);
 
         if (i == 0)
             *tow = val;
@@ -386,10 +385,8 @@ int main(int argc, char** argv)
             rdBiasCsv = 0;
         }
     }
-    else
-    {
-        printf("*** filtered biases file does not exist (%s)\n", rdBiasPath.c_str());
-    }
+    if (!rdBiasCsv)
+        printf("*** filtered biases file not found or open error (%s)\n", rdBiasPath.c_str());
 
     //int last_eph_update_tm = -1;
 
