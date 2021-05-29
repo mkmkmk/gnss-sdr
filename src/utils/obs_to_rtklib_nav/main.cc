@@ -29,9 +29,19 @@
  * -------------------------------------------------------------------------
  */
 
+#include <stdio.h>
+#include <assert.h>
+
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/serialization/map.hpp>
+#include <armadillo>
+
 #include "GPS_L1_CA.h"
 
-#include "geofunctions.h"
+//#include "geofunctions.h"
+#include "rtklib_rtkcmn.h"
+
 #include "gnss_sdr_supl_client.h"
 #include "in_memory_configuration.h"
 #include "rtklib_solver.h"
@@ -40,13 +50,6 @@
 #include "observables_dump_reader.h"
 
 #include "gpx_printer.h"
-
-#include <stdio.h>
-#include <assert.h>
-
-#include <boost/archive/xml_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/serialization/map.hpp>
 
 #include "file_configuration.h"
 
@@ -1006,7 +1009,7 @@ int main(int argc, char** argv)
     arma::vec true_r_eb_e;
     arma::vec true_v_eb_e;
     pv_Geo_to_ECEF(degtorad(LLH(0)), degtorad(LLH(1)), LLH(2), v_eb_n, true_r_eb_e, true_v_eb_e);
-#else
+#elif 0
 
     arma::vec LLH =  LLH_to_deg(cart2geo(true_r_eb_e, 4));
 
@@ -1044,7 +1047,7 @@ int main(int argc, char** argv)
         gpx_dump.set_headers(gpxFName);
 
     FILE *diffCsv = fopen((obs_filename + "_diff.csv").c_str(), "w");
-    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]; bias2[Hz]\n");
+    fprintf(diffCsv, "time; diff_3D [m]; diff_2D [m]; gdop; max_abs_resp[m]; max_abs_resc[m]; bias[Hz]; bias_no_flt[Hz]; bias2[Hz]; err_east[m]; err_north[m]; err_up[m]\n");
 
     FILE *resCsv = fopen((obs_filename + "_res.csv").c_str(), "w");
     fprintf(resCsv, "time");
@@ -1628,15 +1631,17 @@ int main(int argc, char** argv)
         std::cout << "GDOP = " << d_ls_pvt->get_gdop() << std::endl;
         printf("num valid obs = %d \n", d_ls_pvt->get_num_valid_observations());
 
-        double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
-        std::cout << "2D error [m] : " << error_LLH_m << std::endl;
-
         arma::vec measured_r_eb_e = {d_ls_pvt->pvt_sol.rr[0], d_ls_pvt->pvt_sol.rr[1], d_ls_pvt->pvt_sol.rr[2]};
-
         arma::vec error_r_eb_e = measured_r_eb_e - true_r_eb_e;
-
         double error_3d_m = arma::norm(error_r_eb_e, 2);
 
+        double ref_pos[3] = {0}, enu[3] = {0};
+        ecef2pos(true_r_eb_e.mem, ref_pos);
+        ecef2enu(ref_pos, error_r_eb_e.mem, enu);
+        double error_2d_m = sqrt(enu[0]*enu[0] + enu[1]*enu[1]);
+
+        //double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
+        std::cout << "2D error [m] : " << error_2d_m << std::endl;
         std::cout << "3D error [m] : " << error_3d_m << std::endl;
 
         if (error_3d_m >= error_bound) //200.0)
@@ -1669,7 +1674,7 @@ int main(int argc, char** argv)
         }
         fprintf(resCsv,"\n");
 
-        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_LLH_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0, carr_bias2_cmp);
+        fprintf(diffCsv, "%.12g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n", rx_time, error_3d_m, error_2d_m, d_ls_pvt->get_gdop(), max_abs_resp, max_abs_resc, carr_bias_cmp - carr_bias0, carr_bias_pre_flt- carr_bias0, carr_bias2_cmp, enu[0], enu[1], enu[2]);
 
         if (save_gpx)
             gpx_dump.print_position(d_ls_pvt.get(), false);
